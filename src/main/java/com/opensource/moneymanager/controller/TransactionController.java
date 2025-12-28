@@ -4,6 +4,7 @@ import com.opensource.moneymanager.dto.TransactionDto;
 import com.opensource.moneymanager.mapper.TransactionMapper;
 import com.opensource.moneymanager.model.Transaction;
 import com.opensource.moneymanager.service.TransactionService;
+import com.opensource.moneymanager.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +21,11 @@ public class TransactionController {
     private static final Logger logger = LoggerFactory.getLogger(TransactionController.class);
 
     private final TransactionService service;
+    private final AccountService accountService;
 
-    public TransactionController(TransactionService service) {
+    public TransactionController(TransactionService service, AccountService accountService) {
         this.service = service;
+        this.accountService = accountService;
         logger.info("TransactionController initialized");
     }
 
@@ -56,8 +59,23 @@ public class TransactionController {
             dto.getType(), dto.getAmount());
 
         try {
-            // Delegate to service for validation and saving
-            Transaction saved = service.save(TransactionMapper.toEntity(dto));
+            Transaction t = TransactionMapper.toEntity(dto);
+
+            // Load account relationships based on transaction type
+            if ("INCOME".equals(dto.getType()) || "EXPENSE".equals(dto.getType())) {
+                if (dto.getAccountId() != null) {
+                    accountService.findById(dto.getAccountId()).ifPresent(t::setAccount);
+                }
+            } else if ("TRANSFER".equals(dto.getType())) {
+                if (dto.getSourceAccountId() != null) {
+                    accountService.findById(dto.getSourceAccountId()).ifPresent(t::setSourceAccount);
+                }
+                if (dto.getDestinationAccountId() != null) {
+                    accountService.findById(dto.getDestinationAccountId()).ifPresent(t::setDestinationAccount);
+                }
+            }
+
+            Transaction saved = service.saveWithBalanceUpdate(t);
             TransactionDto out = TransactionMapper.toDto(saved);
 
             logger.info("Transaction created successfully with id={}", out.getId());
@@ -90,5 +108,35 @@ public class TransactionController {
             .collect(Collectors.toList());
         logger.info("Returning {} transactions of type {} to client", transactions.size(), type);
         return transactions;
+    }
+
+    @GetMapping("/account/{accountId}")
+    public List<TransactionDto> getByAccount(@PathVariable Long accountId) {
+        logger.info("GET /api/transactions/account/{} - Fetching transactions for account", accountId);
+        List<TransactionDto> transactions = service.findByAccountId(accountId).stream()
+            .map(TransactionMapper::toDto)
+            .collect(Collectors.toList());
+        logger.info("Returning {} transactions for account {} to client", transactions.size(), accountId);
+        return transactions;
+    }
+
+    @GetMapping("/transfers/from/{sourceAccountId}")
+    public List<TransactionDto> getTransfersFrom(@PathVariable Long sourceAccountId) {
+        logger.info("GET /api/transactions/transfers/from/{} - Fetching transfers from account", sourceAccountId);
+        List<TransactionDto> transfers = service.findTransfersFromAccount(sourceAccountId).stream()
+            .map(TransactionMapper::toDto)
+            .collect(Collectors.toList());
+        logger.info("Returning {} transfers from account {} to client", transfers.size(), sourceAccountId);
+        return transfers;
+    }
+
+    @GetMapping("/transfers/to/{destAccountId}")
+    public List<TransactionDto> getTransfersTo(@PathVariable Long destAccountId) {
+        logger.info("GET /api/transactions/transfers/to/{} - Fetching transfers to account", destAccountId);
+        List<TransactionDto> transfers = service.findTransfersToAccount(destAccountId).stream()
+            .map(TransactionMapper::toDto)
+            .collect(Collectors.toList());
+        logger.info("Returning {} transfers to account {} to client", transfers.size(), destAccountId);
+        return transfers;
     }
 }

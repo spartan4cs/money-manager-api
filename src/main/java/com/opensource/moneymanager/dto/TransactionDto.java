@@ -16,6 +16,11 @@ public class TransactionDto {
     private LocalDateTime dateTime;
     private String type; // INCOME, EXPENSE, or TRANSFER
 
+    // Account IDs
+    private Long accountId; // Primary account for INCOME/EXPENSE
+    private Long sourceAccountId; // Source account for TRANSFER
+    private Long destinationAccountId; // Destination account for TRANSFER
+
     public TransactionDto() {
         logger.debug("Creating new TransactionDto instance");
         this.dateTime = LocalDateTime.now();
@@ -65,5 +70,29 @@ public class TransactionDto {
         }
         logger.debug("Setting DTO type: {}", type);
         this.type = type;
+    }
+
+    public Long getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(Long accountId) {
+        this.accountId = accountId;
+    }
+
+    public Long getSourceAccountId() {
+        return sourceAccountId;
+    }
+
+    public void setSourceAccountId(Long sourceAccountId) {
+        this.sourceAccountId = sourceAccountId;
+    }
+
+    public Long getDestinationAccountId() {
+        return destinationAccountId;
+    }
+
+    public void setDestinationAccountId(Long destinationAccountId) {
+        this.destinationAccountId = destinationAccountId;
     }
 }

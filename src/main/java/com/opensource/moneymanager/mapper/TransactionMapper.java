@@ -23,6 +23,17 @@ public class TransactionMapper {
         d.setDateTime(t.getDateTime());
         d.setType(t.getType());
 
+        // Map account relationships
+        if (t.getAccount() != null) {
+            d.setAccountId(t.getAccount().getId());
+        }
+        if (t.getSourceAccount() != null) {
+            d.setSourceAccountId(t.getSourceAccount().getId());
+        }
+        if (t.getDestinationAccount() != null) {
+            d.setDestinationAccountId(t.getDestinationAccount().getId());
+        }
+
         logger.debug("Successfully mapped Transaction to DTO");
         return d;
     }
@@ -40,6 +51,9 @@ public class TransactionMapper {
         t.setDescription(d.getDescription());
         t.setDateTime(d.getDateTime());
         t.setType(d.getType());
+
+        // Note: Account entities should be loaded from service/repository
+        // The DTO only contains IDs; actual Account objects are set by service
 
         logger.debug("Successfully mapped TransactionDto to Transaction entity");
         return t;

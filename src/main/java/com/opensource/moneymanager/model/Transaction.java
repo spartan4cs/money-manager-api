@@ -28,6 +28,20 @@ public class Transaction {
     @Column(nullable = false)
     private String type; // INCOME, EXPENSE, or TRANSFER
 
+    // Account relationship
+    @ManyToOne
+    @JoinColumn(name = "account_id")
+    private Account account; // Primary account for INCOME/EXPENSE
+
+    // For TRANSFER transactions
+    @ManyToOne
+    @JoinColumn(name = "source_account_id")
+    private Account sourceAccount; // Source account for TRANSFER
+
+    @ManyToOne
+    @JoinColumn(name = "destination_account_id")
+    private Account destinationAccount; // Destination account for TRANSFER
+
     public Transaction() {
         logger.debug("Creating new Transaction instance");
         this.dateTime = LocalDateTime.now();
@@ -85,5 +99,29 @@ public class Transaction {
         }
         logger.debug("Setting transaction type: {}", type);
         this.type = type;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
+    public Account getSourceAccount() {
+        return sourceAccount;
+    }
+
+    public void setSourceAccount(Account sourceAccount) {
+        this.sourceAccount = sourceAccount;
+    }
+
+    public Account getDestinationAccount() {
+        return destinationAccount;
+    }
+
+    public void setDestinationAccount(Account destinationAccount) {
+        this.destinationAccount = destinationAccount;
     }
 }
