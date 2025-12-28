@@ -74,3 +74,4 @@ build/
 
 ### VS Code ###
 .vscode/
+/.RestfulApiTool/RestfulApiTool-SavedRequest-Cache.xml
