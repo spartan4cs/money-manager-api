@@ -159,6 +159,53 @@ public class TransactionController {
     }
 
     /**
+     * PUT /api/transactions/{id}
+     *
+     * Update an existing transaction identified by id. Supports updating amount, date, description, and type.
+     * When amount or type changes, account balances are automatically adjusted (old balances rolled back,
+     * new balances applied).
+     *
+     * Response: 200 OK with updated TransactionDto on success,
+     * 404 Not Found if the transaction does not exist, or
+     * 400 Bad Request on validation failure.
+     *
+     * @param id the id of the transaction to update
+     * @param dto a DTO containing fields to update
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody TransactionDto dto) {
+        logger.info("PUT /api/transactions/{} - Updating transaction: type={}, amount={}",
+            id, dto.getType(), dto.getAmount());
+
+        try {
+            Transaction updatedTransaction = mapper.toEntity(dto);
+            Transaction saved = service.updateWithBalanceAdjustment(id, updatedTransaction);
+            TransactionDto out = mapper.toDto(saved);
+
+            logger.info("Transaction updated successfully: id={}", id);
+            return ResponseEntity.ok(out);
+        } catch (IllegalArgumentException e) {
+            logger.error("Failed to update transaction: {}", e.getMessage());
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    e.getMessage(),
+                    "Validation Error",
+                    "/api/transactions/" + id
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("Unexpected error during transaction update: {}", e.getMessage());
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "An unexpected error occurred while updating the transaction",
+                    e.getClass().getSimpleName(),
+                    "/api/transactions/" + id
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
      * GET /api/transactions/by-type/{type}
      *
      * Returns transactions filtered by type (INCOME, EXPENSE, TRANSFER).
