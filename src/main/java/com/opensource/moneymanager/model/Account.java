@@ -35,7 +35,7 @@ public class Account {
     @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
-    @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
     private String description; // Optional notes
@@ -72,6 +72,32 @@ public class Account {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.isActive = true;
+    }
+
+    // JPA lifecycle callbacks to ensure defaults are applied even if fields are absent
+    @PrePersist
+    protected void onPrePersist() {
+        if (this.balance == null) {
+            this.balance = BigDecimal.ZERO;
+        }
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+            logger.debug("@PrePersist set createdAt={}", this.createdAt);
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
+            logger.debug("@PrePersist set updatedAt={}", this.updatedAt);
+        }
+        if (this.isActive == null) {
+            this.isActive = true;
+            logger.debug("@PrePersist set isActive={}", this.isActive);
+        }
+    }
+
+    @PreUpdate
+    protected void onPreUpdate() {
+        this.updatedAt = LocalDateTime.now();
+        logger.debug("@PreUpdate set updatedAt={}", this.updatedAt);
     }
 
     // Getters and Setters

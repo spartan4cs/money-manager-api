@@ -36,6 +36,8 @@ public class AccountService {
             throw new IllegalArgumentException("Account type cannot be null");
         }
 
+        // Rely on entity lifecycle callbacks (@PrePersist/@PreUpdate) to populate defaults
+
         Account saved = repository.save(a);
         logger.info("Account saved successfully with id={}, name={}, type={}",
             saved.getId(), saved.getName(), saved.getType());
@@ -51,7 +53,7 @@ public class AccountService {
 
     public Optional<Account> findById(Long id) {
         logger.debug("Fetching account with id={}", id);
-        Optional<Account> account = repository.findById(id);
+        Optional<Account> account = repository.findByIdAndIsActiveTrue(id);
 
         if (account.isPresent()) {
             logger.info("Account found: id={}, name={}, type={}",
@@ -65,7 +67,7 @@ public class AccountService {
 
     public Optional<Account> findByName(String name) {
         logger.debug("Fetching account by name={}", name);
-        Optional<Account> account = repository.findByName(name);
+        Optional<Account> account = repository.findByNameAndIsActiveTrue(name);
 
         if (account.isPresent()) {
             logger.info("Account found by name: id={}, name={}", account.get().getId(), name);
@@ -78,7 +80,7 @@ public class AccountService {
 
     public List<Account> findByType(String type) {
         logger.debug("Fetching accounts by type={}", type);
-        List<Account> accounts = repository.findByType(type);
+        List<Account> accounts = repository.findByTypeAndIsActiveTrue(type);
         logger.info("Found {} accounts of type={}", accounts.size(), type);
         return accounts;
     }
@@ -88,6 +90,10 @@ public class AccountService {
 
         Optional<Account> account = repository.findById(id);
         if (account.isPresent()) {
+            if (Boolean.FALSE.equals(account.get().getIsActive())) {
+                logger.info("Account already inactive: id={}", id);
+                return; // already deleted
+            }
             account.get().setIsActive(false);
             repository.save(account.get());
             logger.info("Account soft deleted successfully: id={}, name={}",
@@ -101,7 +107,7 @@ public class AccountService {
     public Account updateBalance(Long accountId, BigDecimal amount) {
         logger.debug("Updating balance for account id={}, amount={}", accountId, amount);
 
-        Optional<Account> account = repository.findById(accountId);
+        Optional<Account> account = repository.findByIdAndIsActiveTrue(accountId);
         if (account.isPresent()) {
             BigDecimal newBalance = account.get().getBalance().add(amount);
             account.get().setBalance(newBalance);
@@ -109,20 +115,20 @@ public class AccountService {
             logger.info("Account balance updated: id={}, newBalance={}", accountId, newBalance);
             return updated;
         } else {
-            logger.warn("Cannot update balance for non-existent account: id={}", accountId);
-            throw new IllegalArgumentException("Account not found with id: " + accountId);
+            logger.warn("Cannot update balance for non-existent or inactive account: id={}", accountId);
+            throw new IllegalArgumentException("Active account not found with id: " + accountId);
         }
     }
 
     public Boolean hasNegativeBalance(Long accountId) {
         logger.debug("Checking balance for account id={}", accountId);
-        Optional<Account> account = repository.findById(accountId);
+        Optional<Account> account = repository.findByIdAndIsActiveTrue(accountId);
         if (account.isPresent()) {
             boolean isNegative = account.get().getBalance().signum() < 0;
             logger.debug("Account {} balance is negative: {}", accountId, isNegative);
             return isNegative;
         }
+        logger.warn("Account not found or inactive when checking negative balance: id={}", accountId);
         return false;
     }
 }
-
