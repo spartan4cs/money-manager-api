@@ -32,15 +32,17 @@ public class Account {
 
     private String provider; // Bank/service provider name (optional)
 
-    @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    // Ensure createdAt is never null on persist
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+    // Ensure updatedAt is never null and will be updated on change
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     private String description; // Optional notes
 
-    @Column(nullable = false)
+    @Column
     private Boolean isActive = true; // Soft delete flag
 
     // ===== BIDIRECTIONAL RELATIONSHIPS (Inverse Side) =====
@@ -72,6 +74,21 @@ public class Account {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.isActive = true;
+    }
+
+    // JPA lifecycle callbacks to make sure timestamps are set even when entity is created without using constructors
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+            logger.debug("Setting createdAt for new Account: {}", this.createdAt);
+        }
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     // Getters and Setters
