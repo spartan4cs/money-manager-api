@@ -6,16 +6,18 @@ import com.opensource.moneymanager.model.Account;
 import com.opensource.moneymanager.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * REST controller for managing accounts.
- *
+ * <p>
  * Base path: /api/accounts
  * Responsibilities:
  * - Expose CRUD endpoints for Account resources (DTO representation).
@@ -39,7 +41,7 @@ public class AccountController {
 
     /**
      * GET /api/accounts
-     *
+     * <p>
      * Returns a list of all active accounts (AccountDto).
      * Response: 200 OK with an array of AccountDto.
      */
@@ -47,15 +49,15 @@ public class AccountController {
     public List<AccountDto> list() {
         logger.info("GET /api/accounts - Fetching all accounts");
         List<AccountDto> accounts = service.findAll().stream()
-            .map(mapper::toDto)
-            .collect(Collectors.toList());
+                .map(mapper::toDto)
+                .collect(Collectors.toList());
         logger.info("Returning {} accounts to client", accounts.size());
         return accounts;
     }
 
     /**
      * GET /api/accounts/{id}
-     *
+     * <p>
      * Fetch a single account by id (only active accounts are returned).
      * Response: 200 OK with AccountDto when found; 404 Not Found when not present.
      *
@@ -65,59 +67,68 @@ public class AccountController {
     public ResponseEntity<AccountDto> get(@PathVariable Long id) {
         logger.info("GET /api/accounts/{} - Fetching account by id", id);
         return service.findById(id)
-            .map(account -> {
-                logger.info("Account found: id={}, name={}, type={}", id, account.getName(), account.getType());
-                return ResponseEntity.ok(mapper.toDto(account));
-            })
-            .orElseGet(() -> {
-                logger.warn("Account not found: id={}", id);
-                return ResponseEntity.notFound().build();
-            });
+                .map(account -> {
+                    logger.info("Account found: id={}, name={}, type={}", id, account.getName(), account.getType());
+                    return ResponseEntity.ok(mapper.toDto(account));
+                })
+                .orElseGet(() -> {
+                    logger.warn("Account not found: id={}", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     /**
-     * GET /api/accounts/by-name/{name}
+     * POST /api/accounts/by-name (body)
+     * <p>
+     * Accepts a JSON body {"name": "..."} to find an account by name. This is provided as a
+     * safe alternative to query/path-based lookups when client code cannot easily URL-encode
+     * the account name (for example when names contain spaces or other reserved characters).
+     * <p>
+     * Response: 200 OK with AccountDto when found; 400 Bad Request when name missing; 404 Not Found otherwise.
      *
-     * Find an account by its name.
-     * Response: 200 OK with AccountDto when found; 404 Not Found otherwise.
-     *
-     * @param name the account name to search for
+     * @param body JSON object with a `name` property
      */
-    @GetMapping("/by-name/{name}")
-    public ResponseEntity<AccountDto> getByName(@PathVariable String name) {
-        logger.info("GET /api/accounts/by-name/{} - Fetching account by name", name);
+    @PostMapping(value = "/by-name", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<AccountDto> getByNameBody(@RequestBody Map<String, String> body) {
+        String name = body != null ? body.get("name") : null;
+        if (name == null || name.trim().isEmpty()) {
+            logger.warn("POST /api/accounts/by-name - missing 'name' in request body");
+            return ResponseEntity.badRequest().build();
+        }
+        logger.info("POST /api/accounts/by-name - Fetching account by name (body): {}", name);
         return service.findByName(name)
-            .map(account -> {
-                logger.info("Account found by name: id={}, name={}", account.getId(), name);
-                return ResponseEntity.ok(mapper.toDto(account));
-            })
-            .orElseGet(() -> {
-                logger.warn("Account not found by name: {}", name);
-                return ResponseEntity.notFound().build();
-            });
+                .map(account -> ResponseEntity.ok(mapper.toDto(account)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
-     * GET /api/accounts/by-type/{type}
+     * POST /api/accounts/by-type (body)
+     * <p>
+     * Accepts a JSON body {"type": "..."} to find accounts by type. This is provided as a
+     * safe alternative to query/path-based lookups when client code cannot easily URL-encode
+     * the account type (for example when type contains special characters).
+     * <p>
+     * Response: 200 OK with an array of AccountDto; 400 Bad Request when type missing.
      *
-     * Returns a list of accounts matching the provided type (e.g. BANK, CASH).
-     * Response: 200 OK with an array of AccountDto.
-     *
-     * @param type the account type filter
+     * @param body JSON object with a `type` property
      */
-    @GetMapping("/by-type/{type}")
-    public List<AccountDto> getByType(@PathVariable String type) {
-        logger.info("GET /api/accounts/by-type/{} - Fetching accounts by type", type);
+    @PostMapping(value = "/by-type", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<AccountDto>> getByTypeBody(@RequestBody Map<String, String> body) {
+        String type = body != null ? body.get("type") : null;
+        if (type == null || type.trim().isEmpty()) {
+            logger.warn("POST /api/accounts/by-type - missing 'type' in request body");
+            return ResponseEntity.badRequest().build();
+        }
+        logger.info("POST /api/accounts/by-type - Fetching accounts by type (body): {}", type);
         List<AccountDto> accounts = service.findByType(type).stream()
-            .map(mapper::toDto)
-            .collect(Collectors.toList());
-        logger.info("Returning {} accounts of type {} to client", accounts.size(), type);
-        return accounts;
+                .map(mapper::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(accounts);
     }
 
     /**
      * POST /api/accounts
-     *
+     * <p>
      * Create a new account from the provided AccountDto. The service is responsible for applying
      * defaults and validations. On success returns 201 Created with Location header.
      *
@@ -126,7 +137,7 @@ public class AccountController {
     @PostMapping
     public ResponseEntity<AccountDto> create(@RequestBody AccountDto dto) {
         logger.info("POST /api/accounts - Creating new account: name={}, type={}",
-            dto.getName(), dto.getType());
+                dto.getName(), dto.getType());
 
         try {
             Account saved = service.save(mapper.toEntity(dto));
@@ -142,12 +153,12 @@ public class AccountController {
 
     /**
      * PUT /api/accounts/{id}
-     *
+     * <p>
      * Update an existing account identified by id. Only non-null fields in the provided DTO
      * are applied to the existing account. Returns 200 OK with updated AccountDto on success or
      * 404 Not Found if the account does not exist.
      *
-     * @param id the id of the account to update
+     * @param id  the id of the account to update
      * @param dto a DTO containing fields to update (non-null fields are applied)
      */
     @PutMapping("/{id}")
@@ -156,19 +167,19 @@ public class AccountController {
 
         try {
             return service.findById(id)
-                .map(account -> {
-                    if (dto.getName() != null) account.setName(dto.getName());
-                    if (dto.getDescription() != null) account.setDescription(dto.getDescription());
-                    if (dto.getBalance() != null) account.setBalance(dto.getBalance());
+                    .map(account -> {
+                        if (dto.getName() != null) account.setName(dto.getName());
+                        if (dto.getDescription() != null) account.setDescription(dto.getDescription());
+                        if (dto.getBalance() != null) account.setBalance(dto.getBalance());
 
-                    Account updated = service.save(account);
-                    logger.info("Account updated successfully: id={}", id);
-                    return ResponseEntity.ok(mapper.toDto(updated));
-                })
-                .orElseGet(() -> {
-                    logger.warn("Account not found for update: id={}", id);
-                    return ResponseEntity.notFound().build();
-                });
+                        Account updated = service.save(account);
+                        logger.info("Account updated successfully: id={}", id);
+                        return ResponseEntity.ok(mapper.toDto(updated));
+                    })
+                    .orElseGet(() -> {
+                        logger.warn("Account not found for update: id={}", id);
+                        return ResponseEntity.notFound().build();
+                    });
         } catch (Exception e) {
             logger.error("Failed to update account: {}", e.getMessage());
             throw e;
@@ -177,7 +188,7 @@ public class AccountController {
 
     /**
      * DELETE /api/accounts/{id}
-     *
+     * <p>
      * Soft-delete an account by marking it inactive. Returns 204 No Content on success or
      * 404 Not Found when the account does not exist.
      *
@@ -196,4 +207,6 @@ public class AccountController {
             return ResponseEntity.notFound().build();
         }
     }
+
+
 }
