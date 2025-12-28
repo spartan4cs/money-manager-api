@@ -1,0 +1,338 @@
+[
+  {
+    "id": "17669250172435rdg",
+    "parentId": "176692661603766vj",
+    "name": "@/api/accounts/1",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "@/api/accounts/{id}",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[{\"datum1\":\"id\",\"datum2\":\"1\",\"datum0\":true,\"datum3\":\"\"}]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "true",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "false",
+          "params": ""
+        }
+      ]
+    }
+  },
+  {
+    "id": "176692661603766vj",
+    "parentId": "0",
+    "name": "Accounts",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/folder.svg",
+    "type": "FOLDER",
+    "method": "null",
+    "url": "",
+    "savedRequestEnvInfo": null,
+    "savedRequestParamInfo": null
+  },
+  {
+    "id": "176692389006976nf",
+    "parentId": "176692661603766vj",
+    "name": "@/api/accounts/",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "POST",
+    "url": "@/api/accounts/",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "false",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "true",
+          "params": "{\"name\":\"HDFC Bank\",\"type\":\"BANK\",\"balance\":50000,\"accountNumber\":\"1234567890\",\"provider\":\"HDFC\",\"description\":\"Main savings account\"}"
+        }
+      ]
+    }
+  },
+  {
+    "id": "1766925008534mbls",
+    "parentId": "176692661603766vj",
+    "name": "@/api/accounts/",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "GET",
+    "url": "@/api/accounts/",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "true",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "false",
+          "params": ""
+        }
+      ]
+    }
+  },
+  {
+    "id": "1766924996544t1u6",
+    "parentId": "176692661603766vj",
+    "name": "@/api/accounts/by-name",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "POST",
+    "url": "@/api/accounts/by-name",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "false",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "true",
+          "params": "{\"name\":\"HDFC Bank\"}"
+        }
+      ]
+    }
+  },
+  {
+    "id": "1766924988836aqiu",
+    "parentId": "176692661603766vj",
+    "name": "@/api/accounts/by-type",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "POST",
+    "url": "@/api/accounts/by-type",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "false",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "true",
+          "params": "{\"type\":\"BANK\"}"
+        }
+      ]
+    }
+  },
+  {
+    "id": "1766925575092fhgb",
+    "parentId": "176692661603766vj",
+    "name": "@/api/accounts/{id}",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "PUT",
+    "url": "@/api/accounts/{id}",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[{\"datum1\":\"id\",\"datum2\":\"1\",\"datum0\":true,\"datum3\":\"\"}]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "false",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "true",
+          "params": "{\"name\":\"HDFC Bank updated\",\"balance\":100,\"description\":\"Main\"}"
+        }
+      ]
+    }
+  },
+  {
+    "id": "17669255976808d1f",
+    "parentId": "176692661603766vj",
+    "name": "@/api/accounts/{id}",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "DELETE",
+    "url": "@/api/accounts/{id}",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[{\"datum1\":\"id\",\"datum2\":\"1\",\"datum0\":true,\"datum3\":\"\"}]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "true",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "false",
+          "params": ""
+        }
+      ]
+    }
+  }
+]
