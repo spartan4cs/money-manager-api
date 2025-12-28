@@ -12,5 +12,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findByName(String name);
     List<Account> findByType(String type);
     List<Account> findByIsActiveTrue();
-}
 
+    // New convenience methods to only fetch active accounts
+    Optional<Account> findByIdAndIsActiveTrue(Long id);
+    Optional<Account> findByNameAndIsActiveTrue(String name);
+    List<Account> findByTypeAndIsActiveTrue(String type);
+}
