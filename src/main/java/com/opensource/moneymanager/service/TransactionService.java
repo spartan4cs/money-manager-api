@@ -128,8 +128,8 @@ public class TransactionService {
 
     @Transactional
     public Transaction updateWithBalanceAdjustment(Long id, Transaction updatedTransaction) {
-        logger.debug("Attempting to update transaction with balance adjustment: id={}, new amount={}",
-            id, updatedTransaction.getAmount());
+        logger.debug("Attempting to update transaction with balance adjustment: id={}, new amount={}, new type={}",
+            id, updatedTransaction.getAmount(), updatedTransaction.getType());
 
         Optional<Transaction> existingOpt = repository.findById(id);
         if (!existingOpt.isPresent()) {
@@ -153,26 +153,56 @@ public class TransactionService {
         }
 
         try {
-            // Rollback old transaction balances first
+            // Step 1: Rollback old transaction balances
+            logger.info("Step 1: Rolling back old {} transaction with amount {}", oldType, oldAmount);
             rollbackBalances(existing, oldAmount);
 
-            // Update transaction fields
+            // Step 2: Update transaction fields
+            logger.info("Step 2: Updating transaction fields - type: {} -> {}, amount: {} -> {}",
+                oldType, updatedTransaction.getType(), oldAmount, updatedTransaction.getAmount());
+
             existing.setAmount(updatedTransaction.getAmount());
             existing.setDescription(updatedTransaction.getDescription());
             existing.setType(updatedTransaction.getType());
             existing.setDateTime(updatedTransaction.getDateTime());
 
-            // Save updated transaction
+            // Step 3: Handle account relationship changes when type changes
+            if (!oldType.equals(updatedTransaction.getType())) {
+                logger.info("Step 3: Transaction type changed, updating account relationships");
+
+                // Clear old relationships
+                existing.setAccount(null);
+                existing.setSourceAccount(null);
+                existing.setDestinationAccount(null);
+
+                // Set new relationships based on new type
+                if ("INCOME".equals(updatedTransaction.getType()) || "EXPENSE".equals(updatedTransaction.getType())) {
+                    if (updatedTransaction.getAccount() != null && updatedTransaction.getAccount().getId() != null) {
+                        accountRepository.findById(updatedTransaction.getAccount().getId()).ifPresent(existing::setAccount);
+                    }
+                } else if ("TRANSFER".equals(updatedTransaction.getType())) {
+                    if (updatedTransaction.getSourceAccount() != null && updatedTransaction.getSourceAccount().getId() != null) {
+                        accountRepository.findById(updatedTransaction.getSourceAccount().getId()).ifPresent(existing::setSourceAccount);
+                    }
+                    if (updatedTransaction.getDestinationAccount() != null && updatedTransaction.getDestinationAccount().getId() != null) {
+                        accountRepository.findById(updatedTransaction.getDestinationAccount().getId()).ifPresent(existing::setDestinationAccount);
+                    }
+                }
+            }
+
+            // Step 4: Save updated transaction
+            logger.info("Step 4: Saving updated transaction");
             Transaction saved = repository.save(existing);
             logger.info("Transaction updated: id={}, old type={}, new type={}, old amount={}, new amount={}",
                 id, oldType, updatedTransaction.getType(), oldAmount, updatedTransaction.getAmount());
 
-            // Apply new transaction balances
+            // Step 5: Apply new transaction balances
+            logger.info("Step 5: Applying new {} transaction with amount {}", updatedTransaction.getType(), updatedTransaction.getAmount());
             applyBalanceChanges(saved);
 
             return saved;
         } catch (Exception e) {
-            logger.error("Error updating transaction id={}: {}", id, e.getMessage());
+            logger.error("Error updating transaction id={}: {}", id, e.getMessage(), e);
             throw new RuntimeException("Failed to update transaction: " + e.getMessage());
         }
     }
@@ -185,33 +215,45 @@ public class TransactionService {
             t.getId(), t.getType(), amount);
 
         if ("INCOME".equals(t.getType())) {
-            accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
-                account.setBalance(account.getBalance().subtract(amount));
-                accountRepository.save(account);
-                logger.debug("Rolled back INCOME balance: account id={}, new balance={}",
-                    account.getId(), account.getBalance());
-            });
+            if (t.getAccount() != null && t.getAccount().getId() != null) {
+                accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
+                    BigDecimal oldBalance = account.getBalance();
+                    account.setBalance(account.getBalance().subtract(amount));
+                    accountRepository.save(account);
+                    logger.info("Rolled back INCOME balance: account id={}, old balance={}, new balance={}, amount={}",
+                        account.getId(), oldBalance, account.getBalance(), amount);
+                });
+            }
         } else if ("EXPENSE".equals(t.getType())) {
-            accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
-                account.setBalance(account.getBalance().add(amount));
-                accountRepository.save(account);
-                logger.debug("Rolled back EXPENSE balance: account id={}, new balance={}",
-                    account.getId(), account.getBalance());
-            });
+            if (t.getAccount() != null && t.getAccount().getId() != null) {
+                accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
+                    BigDecimal oldBalance = account.getBalance();
+                    account.setBalance(account.getBalance().add(amount));
+                    accountRepository.save(account);
+                    logger.info("Rolled back EXPENSE balance: account id={}, old balance={}, new balance={}, amount={}",
+                        account.getId(), oldBalance, account.getBalance(), amount);
+                });
+            }
         } else if ("TRANSFER".equals(t.getType())) {
-            accountRepository.findById(t.getSourceAccount().getId()).ifPresent(source -> {
-                source.setBalance(source.getBalance().add(amount));
-                accountRepository.save(source);
-                logger.debug("Rolled back TRANSFER source balance: account id={}, new balance={}",
-                    source.getId(), source.getBalance());
-            });
+            if (t.getSourceAccount() != null && t.getSourceAccount().getId() != null) {
+                accountRepository.findById(t.getSourceAccount().getId()).ifPresent(source -> {
+                    BigDecimal oldBalance = source.getBalance();
+                    source.setBalance(source.getBalance().add(amount));
+                    accountRepository.save(source);
+                    logger.info("Rolled back TRANSFER source balance: account id={}, old balance={}, new balance={}, amount={}",
+                        source.getId(), oldBalance, source.getBalance(), amount);
+                });
+            }
 
-            accountRepository.findById(t.getDestinationAccount().getId()).ifPresent(dest -> {
-                dest.setBalance(dest.getBalance().subtract(amount));
-                accountRepository.save(dest);
-                logger.debug("Rolled back TRANSFER destination balance: account id={}, new balance={}",
-                    dest.getId(), dest.getBalance());
-            });
+            if (t.getDestinationAccount() != null && t.getDestinationAccount().getId() != null) {
+                accountRepository.findById(t.getDestinationAccount().getId()).ifPresent(dest -> {
+                    BigDecimal oldBalance = dest.getBalance();
+                    dest.setBalance(dest.getBalance().subtract(amount));
+                    accountRepository.save(dest);
+                    logger.info("Rolled back TRANSFER destination balance: account id={}, old balance={}, new balance={}, amount={}",
+                        dest.getId(), oldBalance, dest.getBalance(), amount);
+                });
+            }
         }
     }
 
@@ -223,33 +265,45 @@ public class TransactionService {
             t.getId(), t.getType(), t.getAmount());
 
         if ("INCOME".equals(t.getType())) {
-            accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
-                account.setBalance(account.getBalance().add(t.getAmount()));
-                accountRepository.save(account);
-                logger.debug("Applied INCOME balance: account id={}, new balance={}",
-                    account.getId(), account.getBalance());
-            });
+            if (t.getAccount() != null && t.getAccount().getId() != null) {
+                accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
+                    BigDecimal oldBalance = account.getBalance();
+                    account.setBalance(account.getBalance().add(t.getAmount()));
+                    accountRepository.save(account);
+                    logger.info("Applied INCOME balance: account id={}, old balance={}, new balance={}, amount={}",
+                        account.getId(), oldBalance, account.getBalance(), t.getAmount());
+                });
+            }
         } else if ("EXPENSE".equals(t.getType())) {
-            accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
-                account.setBalance(account.getBalance().subtract(t.getAmount()));
-                accountRepository.save(account);
-                logger.debug("Applied EXPENSE balance: account id={}, new balance={}",
-                    account.getId(), account.getBalance());
-            });
+            if (t.getAccount() != null && t.getAccount().getId() != null) {
+                accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
+                    BigDecimal oldBalance = account.getBalance();
+                    account.setBalance(account.getBalance().subtract(t.getAmount()));
+                    accountRepository.save(account);
+                    logger.info("Applied EXPENSE balance: account id={}, old balance={}, new balance={}, amount={}",
+                        account.getId(), oldBalance, account.getBalance(), t.getAmount());
+                });
+            }
         } else if ("TRANSFER".equals(t.getType())) {
-            accountRepository.findById(t.getSourceAccount().getId()).ifPresent(source -> {
-                source.setBalance(source.getBalance().subtract(t.getAmount()));
-                accountRepository.save(source);
-                logger.debug("Applied TRANSFER source balance: account id={}, new balance={}",
-                    source.getId(), source.getBalance());
-            });
+            if (t.getSourceAccount() != null && t.getSourceAccount().getId() != null) {
+                accountRepository.findById(t.getSourceAccount().getId()).ifPresent(source -> {
+                    BigDecimal oldBalance = source.getBalance();
+                    source.setBalance(source.getBalance().subtract(t.getAmount()));
+                    accountRepository.save(source);
+                    logger.info("Applied TRANSFER source balance: account id={}, old balance={}, new balance={}, amount={}",
+                        source.getId(), oldBalance, source.getBalance(), t.getAmount());
+                });
+            }
 
-            accountRepository.findById(t.getDestinationAccount().getId()).ifPresent(dest -> {
-                dest.setBalance(dest.getBalance().add(t.getAmount()));
-                accountRepository.save(dest);
-                logger.debug("Applied TRANSFER destination balance: account id={}, new balance={}",
-                    dest.getId(), dest.getBalance());
-            });
+            if (t.getDestinationAccount() != null && t.getDestinationAccount().getId() != null) {
+                accountRepository.findById(t.getDestinationAccount().getId()).ifPresent(dest -> {
+                    BigDecimal oldBalance = dest.getBalance();
+                    dest.setBalance(dest.getBalance().add(t.getAmount()));
+                    accountRepository.save(dest);
+                    logger.info("Applied TRANSFER destination balance: account id={}, old balance={}, new balance={}, amount={}",
+                        dest.getId(), oldBalance, dest.getBalance(), t.getAmount());
+                });
+            }
         }
     }
 

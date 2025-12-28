@@ -179,6 +179,21 @@ public class TransactionController {
 
         try {
             Transaction updatedTransaction = mapper.toEntity(dto);
+
+            // Load account relationships based on transaction type
+            if ("INCOME".equals(dto.getType()) || "EXPENSE".equals(dto.getType())) {
+                if (dto.getAccountId() != null) {
+                    accountService.findById(dto.getAccountId()).ifPresent(updatedTransaction::setAccount);
+                }
+            } else if ("TRANSFER".equals(dto.getType())) {
+                if (dto.getSourceAccountId() != null) {
+                    accountService.findById(dto.getSourceAccountId()).ifPresent(updatedTransaction::setSourceAccount);
+                }
+                if (dto.getDestinationAccountId() != null) {
+                    accountService.findById(dto.getDestinationAccountId()).ifPresent(updatedTransaction::setDestinationAccount);
+                }
+            }
+
             Transaction saved = service.updateWithBalanceAdjustment(id, updatedTransaction);
             TransactionDto out = mapper.toDto(saved);
 
