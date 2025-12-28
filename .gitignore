@@ -24,3 +24,21 @@
 hs_err_pid*
 replay_pid*
 
+# IntelliJ IDEA / JetBrains IDE
+# User-specific project files and workspace
+*.iml
+*.iws
+*.ipr
+.idea/
+
+# IntelliJ IDEA workspace and other user-specific files
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf/
+.idea/**/dictionaries/
+
+# Build output (IDEA)
+/out/
+
+# End IntelliJ entries
