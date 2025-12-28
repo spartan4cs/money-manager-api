@@ -146,14 +146,62 @@ public class TransactionService {
         return transaction;
     }
 
+    @Transactional
     public void deleteById(Long id) {
         logger.debug("Attempting to delete transaction with id={}", id);
 
         Optional<Transaction> transaction = repository.findById(id);
         if (transaction.isPresent()) {
+            Transaction t = transaction.get();
+
+            // Rollback account balance changes before deleting the transaction
+            try {
+                if ("INCOME".equals(t.getType())) {
+                    logger.info("Rolling back INCOME transaction: account id={}, amount={}",
+                        t.getAccount().getId(), t.getAmount());
+                    accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
+                        account.setBalance(account.getBalance().subtract(t.getAmount()));
+                        accountRepository.save(account);
+                        logger.info("Account balance rolled back (INCOME): account id={}, new balance={}",
+                            account.getId(), account.getBalance());
+                    });
+                } else if ("EXPENSE".equals(t.getType())) {
+                    logger.info("Rolling back EXPENSE transaction: account id={}, amount={}",
+                        t.getAccount().getId(), t.getAmount());
+                    accountRepository.findById(t.getAccount().getId()).ifPresent(account -> {
+                        account.setBalance(account.getBalance().add(t.getAmount()));
+                        accountRepository.save(account);
+                        logger.info("Account balance rolled back (EXPENSE): account id={}, new balance={}",
+                            account.getId(), account.getBalance());
+                    });
+                } else if ("TRANSFER".equals(t.getType())) {
+                    logger.info("Rolling back TRANSFER transaction: source id={}, destination id={}, amount={}",
+                        t.getSourceAccount().getId(), t.getDestinationAccount().getId(), t.getAmount());
+
+                    // Add back to source account (reverse subtract)
+                    accountRepository.findById(t.getSourceAccount().getId()).ifPresent(source -> {
+                        source.setBalance(source.getBalance().add(t.getAmount()));
+                        accountRepository.save(source);
+                        logger.info("Source account balance rolled back: account id={}, new balance={}",
+                            source.getId(), source.getBalance());
+                    });
+
+                    // Subtract from destination account (reverse add)
+                    accountRepository.findById(t.getDestinationAccount().getId()).ifPresent(dest -> {
+                        dest.setBalance(dest.getBalance().subtract(t.getAmount()));
+                        accountRepository.save(dest);
+                        logger.info("Destination account balance rolled back: account id={}, new balance={}",
+                            dest.getId(), dest.getBalance());
+                    });
+                }
+            } catch (Exception e) {
+                logger.error("Error rolling back account balances for transaction id={}: {}", id, e.getMessage());
+                throw new RuntimeException("Failed to rollback account balances: " + e.getMessage());
+            }
+
             repository.deleteById(id);
-            logger.info("Transaction deleted successfully: id={}, type={}",
-                id, transaction.get().getType());
+            logger.info("Transaction deleted successfully with balance rollback: id={}, type={}",
+                id, t.getType());
         } else {
             logger.warn("Cannot delete transaction: id={} not found", id);
             throw new IllegalArgumentException("Transaction not found with id: " + id);
