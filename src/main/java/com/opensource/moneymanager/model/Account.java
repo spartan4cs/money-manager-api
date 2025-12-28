@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "accounts")
@@ -40,6 +42,19 @@ public class Account {
 
     @Column(nullable = false)
     private Boolean isActive = true; // Soft delete flag
+
+    // ===== BIDIRECTIONAL RELATIONSHIPS (Inverse Side) =====
+    // Income/Expense transactions for this account (mapped to Transaction.account)
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
+    private Set<Transaction> transactions = new HashSet<>();
+
+    // Outgoing transfers FROM this account (mapped to Transaction.sourceAccount)
+    @OneToMany(mappedBy = "sourceAccount", fetch = FetchType.LAZY)
+    private Set<Transaction> outgoingTransfers = new HashSet<>();
+
+    // Incoming transfers TO this account (mapped to Transaction.destinationAccount)
+    @OneToMany(mappedBy = "destinationAccount", fetch = FetchType.LAZY)
+    private Set<Transaction> incomingTransfers = new HashSet<>();
 
     public Account() {
         logger.debug("Creating new Account instance");
@@ -144,5 +159,65 @@ public class Account {
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
     }
-}
 
+    // ===== RELATIONSHIP GETTERS (for querying from Account side) =====
+
+    public Set<Transaction> getTransactions() {
+        logger.debug("Retrieving transactions for account id={}, count={}", id, transactions.size());
+        return transactions;
+    }
+
+    public void setTransactions(Set<Transaction> transactions) {
+        this.transactions = transactions;
+    }
+
+    public Set<Transaction> getOutgoingTransfers() {
+        logger.debug("Retrieving outgoing transfers for account id={}, count={}", id, outgoingTransfers.size());
+        return outgoingTransfers;
+    }
+
+    public void setOutgoingTransfers(Set<Transaction> outgoingTransfers) {
+        this.outgoingTransfers = outgoingTransfers;
+    }
+
+    public Set<Transaction> getIncomingTransfers() {
+        logger.debug("Retrieving incoming transfers for account id={}, count={}", id, incomingTransfers.size());
+        return incomingTransfers;
+    }
+
+    public void setIncomingTransfers(Set<Transaction> incomingTransfers) {
+        this.incomingTransfers = incomingTransfers;
+    }
+
+    // ===== HELPER METHODS =====
+
+    public void addTransaction(Transaction t) {
+        logger.debug("Adding transaction to account id={}, transaction id={}", id, t.getId());
+        if (t != null) {
+            transactions.add(t);
+            // Note: Do NOT set t.setAccount(this) here to avoid circular updates
+            // Let the service layer manage this
+        }
+    }
+
+    public void addOutgoingTransfer(Transaction t) {
+        logger.debug("Adding outgoing transfer from account id={}, transaction id={}", id, t.getId());
+        if (t != null) {
+            outgoingTransfers.add(t);
+        }
+    }
+
+    public void addIncomingTransfer(Transaction t) {
+        logger.debug("Adding incoming transfer to account id={}, transaction id={}", id, t.getId());
+        if (t != null) {
+            incomingTransfers.add(t);
+        }
+    }
+
+    // Get total number of all transactions (income + expense + transfers)
+    public int getTotalTransactionCount() {
+        int total = transactions.size() + outgoingTransfers.size() + incomingTransfers.size();
+        logger.debug("Total transaction count for account id={}: {}", id, total);
+        return total;
+    }
+}
