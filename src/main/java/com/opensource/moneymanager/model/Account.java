@@ -42,8 +42,8 @@ public class Account {
 
     private String description; // Optional notes
 
-    @Column
-    private Boolean isActive = true; // Soft delete flag
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean isActive; // Soft delete flag
 
     // ===== BIDIRECTIONAL RELATIONSHIPS (Inverse Side) =====
     // Income/Expense transactions for this account (mapped to Transaction.account)
@@ -82,6 +82,10 @@ public class Account {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
             logger.debug("Setting createdAt for new Account: {}", this.createdAt);
+        }
+        if (this.isActive == null) {
+            this.isActive = true;
+            logger.debug("Setting default isActive for new Account: {}", this.isActive);
         }
         this.updatedAt = LocalDateTime.now();
     }
