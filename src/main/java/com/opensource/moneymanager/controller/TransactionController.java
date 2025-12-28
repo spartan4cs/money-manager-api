@@ -14,6 +14,14 @@ import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * REST controller for managing transactions.
+ *
+ * Base path: /api/transactions
+ * Responsibilities:
+ * - Expose endpoints to create, read, and delete transactions (DTO representation).
+ * - Keep controllers thin: delegate mapping and business rules to services.
+ */
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
@@ -31,6 +39,12 @@ public class TransactionController {
         logger.info("TransactionController initialized");
     }
 
+    /**
+     * GET /api/transactions
+     *
+     * Returns all transactions as TransactionDto list.
+     * Response: 200 OK with an array of TransactionDto.
+     */
     @GetMapping
     public List<TransactionDto> list() {
         logger.info("GET /api/transactions - Fetching all transactions");
@@ -41,6 +55,13 @@ public class TransactionController {
         return transactions;
     }
 
+    /**
+     * GET /api/transactions/{id}
+     *
+     * Fetch a transaction by id. Returns 200 OK with TransactionDto when found, or 404 when not.
+     *
+     * @param id the transaction id
+     */
     @GetMapping("/{id}")
     public ResponseEntity<TransactionDto> get(@PathVariable Long id) {
         logger.info("GET /api/transactions/{} - Fetching transaction by id", id);
@@ -55,6 +76,17 @@ public class TransactionController {
             });
     }
 
+    /**
+     * POST /api/transactions
+     *
+     * Create a new transaction from the provided TransactionDto. The controller will map DTO->entity,
+     * attach account relationships using the AccountService, and then delegate to the transaction service
+     * which will persist and update account balances accordingly.
+     *
+     * Response: 201 Created with Location header and created TransactionDto body on success.
+     *
+     * @param dto the transaction DTO containing amount, type and account id references
+     */
     @PostMapping
     public ResponseEntity<TransactionDto> create(@RequestBody TransactionDto dto) {
         logger.info("POST /api/transactions - Creating new transaction: type={}, amount={}",
@@ -88,6 +120,14 @@ public class TransactionController {
         }
     }
 
+    /**
+     * DELETE /api/transactions/{id}
+     *
+     * Delete (hard delete) a transaction by id.
+     * Response: 204 No Content on success or 404 Not Found when the transaction does not exist.
+     *
+     * @param id the id of the transaction to delete
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         logger.info("DELETE /api/transactions/{} - Deleting transaction", id);
@@ -102,6 +142,14 @@ public class TransactionController {
         }
     }
 
+    /**
+     * GET /api/transactions/by-type/{type}
+     *
+     * Returns transactions filtered by type (INCOME, EXPENSE, TRANSFER).
+     * Response: 200 OK with an array of TransactionDto.
+     *
+     * @param type the transaction type filter
+     */
     @GetMapping("/by-type/{type}")
     public List<TransactionDto> getByType(@PathVariable String type) {
         logger.info("GET /api/transactions/by-type/{} - Fetching transactions by type", type);
@@ -112,6 +160,14 @@ public class TransactionController {
         return transactions;
     }
 
+    /**
+     * GET /api/transactions/account/{accountId}
+     *
+     * Returns transactions for a specific account id.
+     * Response: 200 OK with an array of TransactionDto.
+     *
+     * @param accountId the account id to fetch transactions for
+     */
     @GetMapping("/account/{accountId}")
     public List<TransactionDto> getByAccount(@PathVariable Long accountId) {
         logger.info("GET /api/transactions/account/{} - Fetching transactions for account", accountId);
@@ -122,6 +178,14 @@ public class TransactionController {
         return transactions;
     }
 
+    /**
+     * GET /api/transactions/transfers/from/{sourceAccountId}
+     *
+     * Returns transfer transactions outgoing from a source account.
+     * Response: 200 OK with an array of TransactionDto.
+     *
+     * @param sourceAccountId id of the source account
+     */
     @GetMapping("/transfers/from/{sourceAccountId}")
     public List<TransactionDto> getTransfersFrom(@PathVariable Long sourceAccountId) {
         logger.info("GET /api/transactions/transfers/from/{} - Fetching transfers from account", sourceAccountId);
@@ -132,6 +196,14 @@ public class TransactionController {
         return transfers;
     }
 
+    /**
+     * GET /api/transactions/transfers/to/{destAccountId}
+     *
+     * Returns transfer transactions incoming to a destination account.
+     * Response: 200 OK with an array of TransactionDto.
+     *
+     * @param destAccountId id of the destination account
+     */
     @GetMapping("/transfers/to/{destAccountId}")
     public List<TransactionDto> getTransfersTo(@PathVariable Long destAccountId) {
         logger.info("GET /api/transactions/transfers/to/{} - Fetching transfers to account", destAccountId);
