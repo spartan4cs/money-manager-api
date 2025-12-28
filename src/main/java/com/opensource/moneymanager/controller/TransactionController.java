@@ -1,16 +1,19 @@
 package com.opensource.moneymanager.controller;
 
 import com.opensource.moneymanager.dto.TransactionDto;
+import com.opensource.moneymanager.dto.ErrorResponse;
 import com.opensource.moneymanager.mapper.TransactionStructMapper;
 import com.opensource.moneymanager.model.Transaction;
 import com.opensource.moneymanager.service.TransactionService;
 import com.opensource.moneymanager.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -84,11 +87,12 @@ public class TransactionController {
      * which will persist and update account balances accordingly.
      *
      * Response: 201 Created with Location header and created TransactionDto body on success.
+     * Response: 400 Bad Request with error details on validation failure.
      *
      * @param dto the transaction DTO containing amount, type and account id references
      */
     @PostMapping
-    public ResponseEntity<TransactionDto> create(@RequestBody TransactionDto dto) {
+    public ResponseEntity<?> create(@RequestBody TransactionDto dto) {
         logger.info("POST /api/transactions - Creating new transaction: type={}, amount={}",
             dto.getType(), dto.getAmount());
 
@@ -116,7 +120,13 @@ public class TransactionController {
             return ResponseEntity.created(URI.create("/api/transactions/" + out.getId())).body(out);
         } catch (IllegalArgumentException e) {
             logger.error("Failed to create transaction: {}", e.getMessage());
-            throw e;
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    e.getMessage(),
+                    "Validation Error",
+                    "/api/transactions"
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -129,7 +139,7 @@ public class TransactionController {
      * @param id the id of the transaction to delete
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(@PathVariable Long id) {
         logger.info("DELETE /api/transactions/{} - Deleting transaction", id);
 
         try {
@@ -138,7 +148,13 @@ public class TransactionController {
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             logger.warn("Failed to delete transaction: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.NOT_FOUND.value(),
+                    e.getMessage(),
+                    "Not Found",
+                    "/api/transactions/" + id
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
         }
     }
 

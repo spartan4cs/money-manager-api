@@ -36,6 +36,16 @@ public class AccountService {
             throw new IllegalArgumentException("Account type cannot be null");
         }
 
+        // Check for duplicate account name (excluding current record if updating)
+        Optional<Account> existingAccount = repository.findByName(a.getName());
+        if (existingAccount.isPresent()) {
+            // If updating, allow same name for the same account; if creating, reject duplicate
+            if (a.getId() == null || !existingAccount.get().getId().equals(a.getId())) {
+                logger.warn("Account with name '{}' already exists", a.getName());
+                throw new IllegalArgumentException("An account with name '" + a.getName() + "' already exists");
+            }
+        }
+
         // Rely on entity lifecycle callbacks (@PrePersist/@PreUpdate) to populate defaults
 
         Account saved = repository.save(a);

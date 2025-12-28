@@ -1,16 +1,19 @@
 package com.opensource.moneymanager.controller;
 
 import com.opensource.moneymanager.dto.AccountDto;
+import com.opensource.moneymanager.dto.ErrorResponse;
 import com.opensource.moneymanager.mapper.AccountStructMapper;
 import com.opensource.moneymanager.model.Account;
 import com.opensource.moneymanager.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -89,16 +92,30 @@ public class AccountController {
      * @param body JSON object with a `name` property
      */
     @PostMapping(value = "/by-name", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AccountDto> getByNameBody(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> getByNameBody(@RequestBody Map<String, String> body) {
         String name = body != null ? body.get("name") : null;
         if (name == null || name.trim().isEmpty()) {
             logger.warn("POST /api/accounts/by-name - missing 'name' in request body");
-            return ResponseEntity.badRequest().build();
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Account name is required",
+                    "Validation Error",
+                    "/api/accounts/by-name"
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         }
         logger.info("POST /api/accounts/by-name - Fetching account by name (body): {}", name);
         return service.findByName(name)
-                .map(account -> ResponseEntity.ok(mapper.toDto(account)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .map(account -> ResponseEntity.ok((Object) mapper.toDto(account)))
+                .orElseGet(() -> {
+                    ErrorResponse errorResponse = new ErrorResponse(
+                            HttpStatus.NOT_FOUND.value(),
+                            "Account with name '" + name + "' not found",
+                            "Not Found",
+                            "/api/accounts/by-name"
+                    );
+                    return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+                });
     }
 
     /**
@@ -113,11 +130,17 @@ public class AccountController {
      * @param body JSON object with a `type` property
      */
     @PostMapping(value = "/by-type", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<AccountDto>> getByTypeBody(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> getByTypeBody(@RequestBody Map<String, String> body) {
         String type = body != null ? body.get("type") : null;
         if (type == null || type.trim().isEmpty()) {
             logger.warn("POST /api/accounts/by-type - missing 'type' in request body");
-            return ResponseEntity.badRequest().build();
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Account type is required",
+                    "Validation Error",
+                    "/api/accounts/by-type"
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         }
         logger.info("POST /api/accounts/by-type - Fetching accounts by type (body): {}", type);
         List<AccountDto> accounts = service.findByType(type).stream()
@@ -131,11 +154,12 @@ public class AccountController {
      * <p>
      * Create a new account from the provided AccountDto. The service is responsible for applying
      * defaults and validations. On success returns 201 Created with Location header.
+     * Returns 400 Bad Request with error details on validation failure.
      *
      * @param dto the account DTO to create
      */
     @PostMapping
-    public ResponseEntity<AccountDto> create(@RequestBody AccountDto dto) {
+    public ResponseEntity<?> create(@RequestBody AccountDto dto) {
         logger.info("POST /api/accounts - Creating new account: name={}, type={}",
                 dto.getName(), dto.getType());
 
@@ -147,7 +171,13 @@ public class AccountController {
             return ResponseEntity.created(URI.create("/api/accounts/" + out.getId())).body(out);
         } catch (IllegalArgumentException e) {
             logger.error("Failed to create account: {}", e.getMessage());
-            throw e;
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    e.getMessage(),
+                    "Validation Error",
+                    "/api/accounts"
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -155,14 +185,14 @@ public class AccountController {
      * PUT /api/accounts/{id}
      * <p>
      * Update an existing account identified by id. Only non-null fields in the provided DTO
-     * are applied to the existing account. Returns 200 OK with updated AccountDto on success or
-     * 404 Not Found if the account does not exist.
+     * are applied to the existing account. Returns 200 OK with updated AccountDto on success,
+     * 404 Not Found if the account does not exist, or 400 Bad Request on validation failure.
      *
      * @param id  the id of the account to update
      * @param dto a DTO containing fields to update (non-null fields are applied)
      */
     @PutMapping("/{id}")
-    public ResponseEntity<AccountDto> update(@PathVariable Long id, @RequestBody AccountDto dto) {
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody AccountDto dto) {
         logger.info("PUT /api/accounts/{} - Updating account", id);
 
         try {
@@ -172,30 +202,53 @@ public class AccountController {
                         if (dto.getDescription() != null) account.setDescription(dto.getDescription());
                         if (dto.getBalance() != null) account.setBalance(dto.getBalance());
 
-                        Account updated = service.save(account);
-                        logger.info("Account updated successfully: id={}", id);
-                        return ResponseEntity.ok(mapper.toDto(updated));
+                        try {
+                            Account updated = service.save(account);
+                            logger.info("Account updated successfully: id={}", id);
+                            return (ResponseEntity<?>) ResponseEntity.ok(mapper.toDto(updated));
+                        } catch (IllegalArgumentException e) {
+                            logger.error("Failed to update account: {}", e.getMessage());
+                            ErrorResponse errorResponse = new ErrorResponse(
+                                    HttpStatus.BAD_REQUEST.value(),
+                                    e.getMessage(),
+                                    "Validation Error",
+                                    "/api/accounts/" + id
+                            );
+                            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+                        }
                     })
                     .orElseGet(() -> {
                         logger.warn("Account not found for update: id={}", id);
-                        return ResponseEntity.notFound().build();
+                        ErrorResponse errorResponse = new ErrorResponse(
+                                HttpStatus.NOT_FOUND.value(),
+                                "Account with id " + id + " not found",
+                                "Not Found",
+                                "/api/accounts/" + id
+                        );
+                        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
                     });
         } catch (Exception e) {
-            logger.error("Failed to update account: {}", e.getMessage());
-            throw e;
+            logger.error("Unexpected error during update: {}", e.getMessage(), e);
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "An unexpected error occurred while updating the account",
+                    e.getClass().getSimpleName(),
+                    "/api/accounts/" + id
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
      * DELETE /api/accounts/{id}
      * <p>
-     * Soft-delete an account by marking it inactive. Returns 204 No Content on success or
-     * 404 Not Found when the account does not exist.
+     * Soft-delete an account by marking it inactive. Returns 204 No Content on success,
+     * 404 Not Found when the account does not exist, or 500 on unexpected errors.
      *
      * @param id the id of the account to soft-delete
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(@PathVariable Long id) {
         logger.info("DELETE /api/accounts/{} - Deleting account", id);
 
         try {
@@ -204,7 +257,22 @@ public class AccountController {
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             logger.warn("Failed to delete account: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.NOT_FOUND.value(),
+                    e.getMessage(),
+                    "Not Found",
+                    "/api/accounts/" + id
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            logger.error("Unexpected error during delete: {}", e.getMessage(), e);
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "An unexpected error occurred while deleting the account",
+                    e.getClass().getSimpleName(),
+                    "/api/accounts/" + id
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
