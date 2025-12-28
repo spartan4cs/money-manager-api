@@ -1,7 +1,7 @@
 package com.opensource.moneymanager.controller;
 
 import com.opensource.moneymanager.dto.TransactionDto;
-import com.opensource.moneymanager.mapper.TransactionMapper;
+import com.opensource.moneymanager.mapper.TransactionStructMapper;
 import com.opensource.moneymanager.model.Transaction;
 import com.opensource.moneymanager.service.TransactionService;
 import com.opensource.moneymanager.service.AccountService;
@@ -22,10 +22,12 @@ public class TransactionController {
 
     private final TransactionService service;
     private final AccountService accountService;
+    private final TransactionStructMapper mapper;
 
-    public TransactionController(TransactionService service, AccountService accountService) {
+    public TransactionController(TransactionService service, AccountService accountService, TransactionStructMapper mapper) {
         this.service = service;
         this.accountService = accountService;
+        this.mapper = mapper;
         logger.info("TransactionController initialized");
     }
 
@@ -33,7 +35,7 @@ public class TransactionController {
     public List<TransactionDto> list() {
         logger.info("GET /api/transactions - Fetching all transactions");
         List<TransactionDto> transactions = service.findAll().stream()
-            .map(TransactionMapper::toDto)
+            .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transactions to client", transactions.size());
         return transactions;
@@ -45,7 +47,7 @@ public class TransactionController {
         return service.findById(id)
             .map(transaction -> {
                 logger.info("Transaction found: id={}, type={}", id, transaction.getType());
-                return ResponseEntity.ok(TransactionMapper.toDto(transaction));
+                return ResponseEntity.ok(mapper.toDto(transaction));
             })
             .orElseGet(() -> {
                 logger.warn("Transaction not found: id={}", id);
@@ -59,7 +61,7 @@ public class TransactionController {
             dto.getType(), dto.getAmount());
 
         try {
-            Transaction t = TransactionMapper.toEntity(dto);
+            Transaction t = mapper.toEntity(dto);
 
             // Load account relationships based on transaction type
             if ("INCOME".equals(dto.getType()) || "EXPENSE".equals(dto.getType())) {
@@ -76,7 +78,7 @@ public class TransactionController {
             }
 
             Transaction saved = service.saveWithBalanceUpdate(t);
-            TransactionDto out = TransactionMapper.toDto(saved);
+            TransactionDto out = mapper.toDto(saved);
 
             logger.info("Transaction created successfully with id={}", out.getId());
             return ResponseEntity.created(URI.create("/api/transactions/" + out.getId())).body(out);
@@ -104,7 +106,7 @@ public class TransactionController {
     public List<TransactionDto> getByType(@PathVariable String type) {
         logger.info("GET /api/transactions/by-type/{} - Fetching transactions by type", type);
         List<TransactionDto> transactions = service.findByType(type).stream()
-            .map(TransactionMapper::toDto)
+            .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transactions of type {} to client", transactions.size(), type);
         return transactions;
@@ -114,7 +116,7 @@ public class TransactionController {
     public List<TransactionDto> getByAccount(@PathVariable Long accountId) {
         logger.info("GET /api/transactions/account/{} - Fetching transactions for account", accountId);
         List<TransactionDto> transactions = service.findByAccountId(accountId).stream()
-            .map(TransactionMapper::toDto)
+            .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transactions for account {} to client", transactions.size(), accountId);
         return transactions;
@@ -124,7 +126,7 @@ public class TransactionController {
     public List<TransactionDto> getTransfersFrom(@PathVariable Long sourceAccountId) {
         logger.info("GET /api/transactions/transfers/from/{} - Fetching transfers from account", sourceAccountId);
         List<TransactionDto> transfers = service.findTransfersFromAccount(sourceAccountId).stream()
-            .map(TransactionMapper::toDto)
+            .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transfers from account {} to client", transfers.size(), sourceAccountId);
         return transfers;
@@ -134,7 +136,7 @@ public class TransactionController {
     public List<TransactionDto> getTransfersTo(@PathVariable Long destAccountId) {
         logger.info("GET /api/transactions/transfers/to/{} - Fetching transfers to account", destAccountId);
         List<TransactionDto> transfers = service.findTransfersToAccount(destAccountId).stream()
-            .map(TransactionMapper::toDto)
+            .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transfers to account {} to client", transfers.size(), destAccountId);
         return transfers;

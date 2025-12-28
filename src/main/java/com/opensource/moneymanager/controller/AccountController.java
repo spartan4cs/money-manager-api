@@ -1,7 +1,7 @@
 package com.opensource.moneymanager.controller;
 
 import com.opensource.moneymanager.dto.AccountDto;
-import com.opensource.moneymanager.mapper.AccountMapper;
+import com.opensource.moneymanager.mapper.AccountStructMapper;
 import com.opensource.moneymanager.model.Account;
 import com.opensource.moneymanager.service.AccountService;
 import org.slf4j.Logger;
@@ -20,9 +20,11 @@ public class AccountController {
     private static final Logger logger = LoggerFactory.getLogger(AccountController.class);
 
     private final AccountService service;
+    private final AccountStructMapper mapper;
 
-    public AccountController(AccountService service) {
+    public AccountController(AccountService service, AccountStructMapper mapper) {
         this.service = service;
+        this.mapper = mapper;
         logger.info("AccountController initialized");
     }
 
@@ -30,7 +32,7 @@ public class AccountController {
     public List<AccountDto> list() {
         logger.info("GET /api/accounts - Fetching all accounts");
         List<AccountDto> accounts = service.findAll().stream()
-            .map(AccountMapper::toDto)
+            .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} accounts to client", accounts.size());
         return accounts;
@@ -42,7 +44,7 @@ public class AccountController {
         return service.findById(id)
             .map(account -> {
                 logger.info("Account found: id={}, name={}, type={}", id, account.getName(), account.getType());
-                return ResponseEntity.ok(AccountMapper.toDto(account));
+                return ResponseEntity.ok(mapper.toDto(account));
             })
             .orElseGet(() -> {
                 logger.warn("Account not found: id={}", id);
@@ -56,7 +58,7 @@ public class AccountController {
         return service.findByName(name)
             .map(account -> {
                 logger.info("Account found by name: id={}, name={}", account.getId(), name);
-                return ResponseEntity.ok(AccountMapper.toDto(account));
+                return ResponseEntity.ok(mapper.toDto(account));
             })
             .orElseGet(() -> {
                 logger.warn("Account not found by name: {}", name);
@@ -68,7 +70,7 @@ public class AccountController {
     public List<AccountDto> getByType(@PathVariable String type) {
         logger.info("GET /api/accounts/by-type/{} - Fetching accounts by type", type);
         List<AccountDto> accounts = service.findByType(type).stream()
-            .map(AccountMapper::toDto)
+            .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} accounts of type {} to client", accounts.size(), type);
         return accounts;
@@ -80,8 +82,8 @@ public class AccountController {
             dto.getName(), dto.getType());
 
         try {
-            Account saved = service.save(AccountMapper.toEntity(dto));
-            AccountDto out = AccountMapper.toDto(saved);
+            Account saved = service.save(mapper.toEntity(dto));
+            AccountDto out = mapper.toDto(saved);
 
             logger.info("Account created successfully with id={}", out.getId());
             return ResponseEntity.created(URI.create("/api/accounts/" + out.getId())).body(out);
@@ -104,7 +106,7 @@ public class AccountController {
 
                     Account updated = service.save(account);
                     logger.info("Account updated successfully: id={}", id);
-                    return ResponseEntity.ok(AccountMapper.toDto(updated));
+                    return ResponseEntity.ok(mapper.toDto(updated));
                 })
                 .orElseGet(() -> {
                     logger.warn("Account not found for update: id={}", id);
@@ -130,4 +132,3 @@ public class AccountController {
         }
     }
 }
-
