@@ -46,20 +46,6 @@
     }
   },
   {
-    "id": "176692661603766vj",
-    "parentId": "0",
-    "name": "Accounts",
-    "desc": "",
-    "sort": "0",
-    "child": [],
-    "icon": "/icons/tool/folder.svg",
-    "type": "FOLDER",
-    "method": "null",
-    "url": "",
-    "savedRequestEnvInfo": null,
-    "savedRequestParamInfo": null
-  },
-  {
     "id": "176692389006976nf",
     "parentId": "176692661603766vj",
     "name": "@/api/accounts/",
@@ -331,6 +317,204 @@
           "index": "3",
           "select": "false",
           "params": ""
+        }
+      ]
+    }
+  },
+  {
+    "id": "176692661603766vj",
+    "parentId": "0",
+    "name": "Accounts",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/folder.svg",
+    "type": "FOLDER",
+    "method": "GET",
+    "url": "",
+    "savedRequestEnvInfo": {
+      "env": "",
+      "module": "",
+      "host": "",
+      "port": "",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "true",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "false",
+          "params": ""
+        }
+      ]
+    }
+  },
+  {
+    "id": "17669271116395e6l",
+    "parentId": "0",
+    "name": "Transactions",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/folder.svg",
+    "type": "FOLDER",
+    "method": "null",
+    "url": "",
+    "savedRequestEnvInfo": null,
+    "savedRequestParamInfo": null
+  },
+  {
+    "id": "1766927039047cggo",
+    "parentId": "17669271116395e6l",
+    "name": "Income",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "POST",
+    "url": "@/api/transactions/",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "false",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "true",
+          "params": "{\"amount\":1000,\"description\":\"Salary\",\"type\":\"INCOME\",\"accountId\":3}"
+        }
+      ]
+    }
+  },
+  {
+    "id": "1766927078390bbkq",
+    "parentId": "17669271116395e6l",
+    "name": "Expense",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "POST",
+    "url": "@/api/transactions/",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "false",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "true",
+          "params": "{\"amount\":1000,\"description\":\"Food\",\"type\":\"EXPENSE\",\"accountId\":3}"
+        }
+      ]
+    }
+  },
+  {
+    "id": "1766927362377bksn",
+    "parentId": "17669271116395e6l",
+    "name": "Transfer",
+    "desc": "",
+    "sort": "0",
+    "child": [],
+    "icon": "/icons/tool/request.svg",
+    "type": "REQUEST",
+    "method": "POST",
+    "url": "@/api/transactions/",
+    "savedRequestEnvInfo": {
+      "env": "Global",
+      "module": "moneymanager",
+      "host": "http://localhost",
+      "port": "8080",
+      "contextPath": ""
+    },
+    "savedRequestParamInfo": {
+      "params": "[]",
+      "authorization": "{\"token\":\"\",\"password\":\"\",\"selectType\":\"No Auth\",\"username\":\"\"}",
+      "headers": "[]",
+      "body": [
+        {
+          "index": "0",
+          "select": "false",
+          "params": ""
+        },
+        {
+          "index": "1",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "2",
+          "select": "false",
+          "params": "[]"
+        },
+        {
+          "index": "3",
+          "select": "true",
+          "params": "{\"amount\":100,\"description\":\"transfer test\",\"type\":\"TRANSFER\",\"accountId\":0,\"sourceAccountId\":3,\"destinationAccountId\":4}"
         }
       ]
     }
