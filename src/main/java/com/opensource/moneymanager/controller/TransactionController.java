@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -92,7 +93,7 @@ public class TransactionController {
      * @param dto the transaction DTO containing amount, type and account id references
      */
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody TransactionDto dto) {
+    public ResponseEntity<?> create(@Valid @RequestBody TransactionDto dto) {
         logger.info("POST /api/transactions - Creating new transaction: type={}, amount={}",
             dto.getType(), dto.getAmount());
 
@@ -173,7 +174,7 @@ public class TransactionController {
      * @param dto a DTO containing fields to update
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody TransactionDto dto) {
+    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody TransactionDto dto) {
         logger.info("PUT /api/transactions/{} - Updating transaction: type={}, amount={}",
             id, dto.getType(), dto.getAmount());
 
@@ -225,17 +226,42 @@ public class TransactionController {
      *
      * Returns transactions filtered by type (INCOME, EXPENSE, TRANSFER).
      * Response: 200 OK with an array of TransactionDto.
+     * Response: 400 Bad Request if type is invalid.
      *
      * @param type the transaction type filter
      */
     @GetMapping("/by-type/{type}")
-    public List<TransactionDto> getByType(@PathVariable String type) {
+    public ResponseEntity<?> getByType(@PathVariable String type) {
         logger.info("GET /api/transactions/by-type/{} - Fetching transactions by type", type);
+
+        // Validate type parameter
+        if (type == null || type.trim().isEmpty()) {
+            logger.warn("GET /api/transactions/by-type - invalid type: empty");
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Transaction type cannot be empty",
+                    "Validation Error",
+                    "/api/transactions/by-type/" + type
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
+        if (!type.matches("^(INCOME|EXPENSE|TRANSFER)$")) {
+            logger.warn("GET /api/transactions/by-type - invalid type: {}", type);
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Type must be one of: INCOME, EXPENSE, TRANSFER",
+                    "Validation Error",
+                    "/api/transactions/by-type/" + type
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
         List<TransactionDto> transactions = service.findByType(type).stream()
             .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transactions of type {} to client", transactions.size(), type);
-        return transactions;
+        return ResponseEntity.ok(transactions);
     }
 
     /**
@@ -243,17 +269,31 @@ public class TransactionController {
      *
      * Returns transactions for a specific account id.
      * Response: 200 OK with an array of TransactionDto.
+     * Response: 400 Bad Request if accountId is invalid.
      *
      * @param accountId the account id to fetch transactions for
      */
     @GetMapping("/account/{accountId}")
-    public List<TransactionDto> getByAccount(@PathVariable Long accountId) {
+    public ResponseEntity<?> getByAccount(@PathVariable Long accountId) {
         logger.info("GET /api/transactions/account/{} - Fetching transactions for account", accountId);
+
+        // Validate accountId parameter
+        if (accountId == null || accountId <= 0) {
+            logger.warn("GET /api/transactions/account - invalid accountId: {}", accountId);
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Account ID must be a positive number",
+                    "Validation Error",
+                    "/api/transactions/account/" + accountId
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
         List<TransactionDto> transactions = service.findByAccountId(accountId).stream()
             .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transactions for account {} to client", transactions.size(), accountId);
-        return transactions;
+        return ResponseEntity.ok(transactions);
     }
 
     /**
@@ -261,17 +301,31 @@ public class TransactionController {
      *
      * Returns transfer transactions outgoing from a source account.
      * Response: 200 OK with an array of TransactionDto.
+     * Response: 400 Bad Request if sourceAccountId is invalid.
      *
      * @param sourceAccountId id of the source account
      */
     @GetMapping("/transfers/from/{sourceAccountId}")
-    public List<TransactionDto> getTransfersFrom(@PathVariable Long sourceAccountId) {
+    public ResponseEntity<?> getTransfersFrom(@PathVariable Long sourceAccountId) {
         logger.info("GET /api/transactions/transfers/from/{} - Fetching transfers from account", sourceAccountId);
+
+        // Validate sourceAccountId parameter
+        if (sourceAccountId == null || sourceAccountId <= 0) {
+            logger.warn("GET /api/transactions/transfers/from - invalid sourceAccountId: {}", sourceAccountId);
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Source Account ID must be a positive number",
+                    "Validation Error",
+                    "/api/transactions/transfers/from/" + sourceAccountId
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
         List<TransactionDto> transfers = service.findTransfersFromAccount(sourceAccountId).stream()
             .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transfers from account {} to client", transfers.size(), sourceAccountId);
-        return transfers;
+        return ResponseEntity.ok(transfers);
     }
 
     /**
@@ -279,16 +333,30 @@ public class TransactionController {
      *
      * Returns transfer transactions incoming to a destination account.
      * Response: 200 OK with an array of TransactionDto.
+     * Response: 400 Bad Request if destAccountId is invalid.
      *
      * @param destAccountId id of the destination account
      */
     @GetMapping("/transfers/to/{destAccountId}")
-    public List<TransactionDto> getTransfersTo(@PathVariable Long destAccountId) {
+    public ResponseEntity<?> getTransfersTo(@PathVariable Long destAccountId) {
         logger.info("GET /api/transactions/transfers/to/{} - Fetching transfers to account", destAccountId);
+
+        // Validate destAccountId parameter
+        if (destAccountId == null || destAccountId <= 0) {
+            logger.warn("GET /api/transactions/transfers/to - invalid destAccountId: {}", destAccountId);
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Destination Account ID must be a positive number",
+                    "Validation Error",
+                    "/api/transactions/transfers/to/" + destAccountId
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
         List<TransactionDto> transfers = service.findTransfersToAccount(destAccountId).stream()
             .map(mapper::toDto)
             .collect(Collectors.toList());
         logger.info("Returning {} transfers to account {} to client", transfers.size(), destAccountId);
-        return transfers;
+        return ResponseEntity.ok(transfers);
     }
 }
