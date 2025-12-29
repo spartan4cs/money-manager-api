@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class MoneymanagerApplication {
 
+	//test
 	public static void main(String[] args) {
 		SpringApplication.run(MoneymanagerApplication.class, args);
 	}

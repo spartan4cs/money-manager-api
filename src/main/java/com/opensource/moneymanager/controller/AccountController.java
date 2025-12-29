@@ -10,8 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -93,17 +95,40 @@ public class AccountController {
      */
     @PostMapping(value = "/by-name", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getByNameBody(@RequestBody Map<String, String> body) {
-        String name = body != null ? body.get("name") : null;
-        if (name == null || name.trim().isEmpty()) {
-            logger.warn("POST /api/accounts/by-name - missing 'name' in request body");
+        if (body == null) {
+            logger.warn("POST /api/accounts/by-name - request body is null");
             ErrorResponse errorResponse = new ErrorResponse(
                     HttpStatus.BAD_REQUEST.value(),
-                    "Account name is required",
+                    "Request body cannot be null",
                     "Validation Error",
                     "/api/accounts/by-name"
             );
             return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         }
+
+        String name = body.get("name");
+        if (name == null || name.trim().isEmpty()) {
+            logger.warn("POST /api/accounts/by-name - missing or empty 'name' in request body");
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Account name is required and cannot be empty",
+                    "Validation Error",
+                    "/api/accounts/by-name"
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
+        if (name.length() > 255) {
+            logger.warn("POST /api/accounts/by-name - name exceeds maximum length: {}", name.length());
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Account name must not exceed 255 characters",
+                    "Validation Error",
+                    "/api/accounts/by-name"
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
         logger.info("POST /api/accounts/by-name - Fetching account by name (body): {}", name);
         return service.findByName(name)
                 .map(account -> ResponseEntity.ok((Object) mapper.toDto(account)))
@@ -131,17 +156,40 @@ public class AccountController {
      */
     @PostMapping(value = "/by-type", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getByTypeBody(@RequestBody Map<String, String> body) {
-        String type = body != null ? body.get("type") : null;
-        if (type == null || type.trim().isEmpty()) {
-            logger.warn("POST /api/accounts/by-type - missing 'type' in request body");
+        if (body == null) {
+            logger.warn("POST /api/accounts/by-type - request body is null");
             ErrorResponse errorResponse = new ErrorResponse(
                     HttpStatus.BAD_REQUEST.value(),
-                    "Account type is required",
+                    "Request body cannot be null",
                     "Validation Error",
                     "/api/accounts/by-type"
             );
             return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
         }
+
+        String type = body.get("type");
+        if (type == null || type.trim().isEmpty()) {
+            logger.warn("POST /api/accounts/by-type - missing or empty 'type' in request body");
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Account type is required and cannot be empty",
+                    "Validation Error",
+                    "/api/accounts/by-type"
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
+        if (!type.matches("^(BANK|CREDIT_CARD|DEBIT_CARD|E_WALLET|CASH|SAVINGS|INVESTMENT)$")) {
+            logger.warn("POST /api/accounts/by-type - invalid type: {}", type);
+            ErrorResponse errorResponse = new ErrorResponse(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Type must be one of: BANK, CREDIT_CARD, DEBIT_CARD, E_WALLET, CASH, SAVINGS, INVESTMENT",
+                    "Validation Error",
+                    "/api/accounts/by-type"
+            );
+            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
         logger.info("POST /api/accounts/by-type - Fetching accounts by type (body): {}", type);
         List<AccountDto> accounts = service.findByType(type).stream()
                 .map(mapper::toDto)
@@ -159,7 +207,7 @@ public class AccountController {
      * @param dto the account DTO to create
      */
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody AccountDto dto) {
+    public ResponseEntity<?> create(@Valid @RequestBody AccountDto dto) {
         logger.info("POST /api/accounts - Creating new account: name={}, type={}",
                 dto.getName(), dto.getType());
 
@@ -192,7 +240,7 @@ public class AccountController {
      * @param dto a DTO containing fields to update (non-null fields are applied)
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody AccountDto dto) {
+    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody AccountDto dto) {
         logger.info("PUT /api/accounts/{} - Updating account", id);
 
         try {

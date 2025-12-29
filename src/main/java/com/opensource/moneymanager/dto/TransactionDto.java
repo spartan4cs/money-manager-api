@@ -3,6 +3,7 @@ package com.opensource.moneymanager.dto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -11,10 +12,20 @@ public class TransactionDto {
     private static final Logger logger = LoggerFactory.getLogger(TransactionDto.class);
 
     private Long id;
+
+    @NotNull(message = "Transaction amount is required")
+    @DecimalMin(value = "0.01", message = "Transaction amount must be greater than 0")
+    @DecimalMax(value = "999999999.99", message = "Transaction amount must not exceed 999999999.99")
     private BigDecimal amount;
+
+    @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
+
     private LocalDateTime dateTime;
-    private String type; // INCOME, EXPENSE, or TRANSFER
+
+    @NotBlank(message = "Transaction type is required")
+    @Pattern(regexp = "^(INCOME|EXPENSE|TRANSFER)$", message = "Type must be one of: INCOME, EXPENSE, TRANSFER")
+    private String type;
 
     // Account IDs
     private Long accountId; // Primary account for INCOME/EXPENSE
@@ -26,6 +37,7 @@ public class TransactionDto {
         this.dateTime = LocalDateTime.now();
     }
 
+    // ...existing getters and setters...
     public Long getId() {
         return id;
     }
@@ -63,11 +75,6 @@ public class TransactionDto {
     }
 
     public void setType(String type) {
-        // Validate that type is one of: INCOME, EXPENSE, TRANSFER
-        if (type != null && !type.matches("^(INCOME|EXPENSE|TRANSFER)$")) {
-            logger.error("Invalid transaction type attempted in DTO: {}", type);
-            throw new IllegalArgumentException("Type must be one of: INCOME, EXPENSE, TRANSFER");
-        }
         logger.debug("Setting DTO type: {}", type);
         this.type = type;
     }
