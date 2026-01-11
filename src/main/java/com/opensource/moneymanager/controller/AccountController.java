@@ -382,5 +382,23 @@ public class AccountController {
         }
     }
 
+    /**
+     * GET /api/accounts/types/available
+     * <p>
+     * Returns a list of all available account types for UI dropdowns/selection.
+     * Response: 200 OK with an array of account type strings.
+     */
+    @Operation(summary = "Get available account types", description = "Retrieves all available account types for UI selection")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved account types",
+            content = @Content(schema = @Schema(implementation = String.class)))
+    @GetMapping("/types/available")
+    public ResponseEntity<List<String>> getAvailableTypes() {
+        logger.info("GET /api/accounts/types/available - Fetching available account types");
+        List<String> types = List.of("BANK", "CREDIT_CARD", "DEBIT_CARD", "E_WALLET", "CASH", "SAVINGS", "INVESTMENT");
+        logger.info("Returning {} account types", types.size());
+        return ResponseEntity.ok(types);
+    }
+
+
 
 }
