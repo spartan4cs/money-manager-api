@@ -31,7 +31,7 @@ public class SwaggerConfig {
                         .contact(new Contact()
                                 .name("Money Manager Team")
                                 .url("https://github.com/spartan4cs/money-manager-api")
-                                .email("support@moneymanager.com"))
+                                .email("blue@cc.cc"))
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")));
