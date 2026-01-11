@@ -5,17 +5,22 @@ import com.opensource.moneymanager.dto.ErrorResponse;
 import com.opensource.moneymanager.mapper.AccountStructMapper;
 import com.opensource.moneymanager.model.Account;
 import com.opensource.moneymanager.service.AccountService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.net.URI;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,6 +34,7 @@ import java.util.stream.Collectors;
  * - Keep controller logic thin: delegate business rules, mapping and persistence to service layer.
  * - Delete is a soft-delete and will mark account as inactive (isActive=false).
  */
+@Tag(name = "Accounts", description = "Account management endpoints")
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
@@ -50,6 +56,9 @@ public class AccountController {
      * Returns a list of all active accounts (AccountDto).
      * Response: 200 OK with an array of AccountDto.
      */
+    @Operation(summary = "List all accounts", description = "Retrieves a list of all active accounts")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved accounts",
+            content = @Content(schema = @Schema(implementation = AccountDto.class)))
     @GetMapping
     public List<AccountDto> list() {
         logger.info("GET /api/accounts - Fetching all accounts");
@@ -68,8 +77,14 @@ public class AccountController {
      *
      * @param id the account id
      */
+    @Operation(summary = "Get account by ID", description = "Retrieves a single account by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Account found",
+                    content = @Content(schema = @Schema(implementation = AccountDto.class))),
+            @ApiResponse(responseCode = "404", description = "Account not found")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<AccountDto> get(@PathVariable Long id) {
+    public ResponseEntity<AccountDto> get(@Parameter(description = "Account ID") @PathVariable Long id) {
         logger.info("GET /api/accounts/{} - Fetching account by id", id);
         return service.findById(id)
                 .map(account -> {
@@ -93,6 +108,15 @@ public class AccountController {
      *
      * @param body JSON object with a `name` property
      */
+    @Operation(summary = "Get account by name", description = "Retrieves an account by its name using request body")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Account found",
+                    content = @Content(schema = @Schema(implementation = AccountDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request - name is missing or empty",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Account not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PostMapping(value = "/by-name", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getByNameBody(@RequestBody Map<String, String> body) {
         if (body == null) {
@@ -154,6 +178,13 @@ public class AccountController {
      *
      * @param body JSON object with a `type` property
      */
+    @Operation(summary = "Get accounts by type", description = "Retrieves all accounts of a specific type")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Accounts retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = AccountDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request - type is missing, empty, or invalid",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PostMapping(value = "/by-type", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getByTypeBody(@RequestBody Map<String, String> body) {
         if (body == null) {
@@ -206,6 +237,13 @@ public class AccountController {
      *
      * @param dto the account DTO to create
      */
+    @Operation(summary = "Create a new account", description = "Creates a new account with the provided details")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Account created successfully",
+                    content = @Content(schema = @Schema(implementation = AccountDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request - validation failed",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody AccountDto dto) {
         logger.info("POST /api/accounts - Creating new account: name={}, type={}",
@@ -239,8 +277,20 @@ public class AccountController {
      * @param id  the id of the account to update
      * @param dto a DTO containing fields to update (non-null fields are applied)
      */
+    @Operation(summary = "Update an account", description = "Updates an existing account with the provided details")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Account updated successfully",
+                    content = @Content(schema = @Schema(implementation = AccountDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request - validation failed",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Account not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody AccountDto dto) {
+    public ResponseEntity<?> update(@Parameter(description = "Account ID") @PathVariable Long id,
+                                    @Valid @RequestBody AccountDto dto) {
         logger.info("PUT /api/accounts/{} - Updating account", id);
 
         try {
@@ -253,7 +303,7 @@ public class AccountController {
                         try {
                             Account updated = service.save(account);
                             logger.info("Account updated successfully: id={}", id);
-                            return (ResponseEntity<?>) ResponseEntity.ok(mapper.toDto(updated));
+                            return ResponseEntity.ok(mapper.toDto(updated));
                         } catch (IllegalArgumentException e) {
                             logger.error("Failed to update account: {}", e.getMessage());
                             ErrorResponse errorResponse = new ErrorResponse(
@@ -295,8 +345,16 @@ public class AccountController {
      *
      * @param id the id of the account to soft-delete
      */
+    @Operation(summary = "Delete an account", description = "Soft-deletes an account by marking it as inactive")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Account successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Account not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(@Parameter(description = "Account ID") @PathVariable Long id) {
         logger.info("DELETE /api/accounts/{} - Deleting account", id);
 
         try {

@@ -6,6 +6,13 @@ import com.opensource.moneymanager.mapper.TransactionStructMapper;
 import com.opensource.moneymanager.model.Transaction;
 import com.opensource.moneymanager.service.TransactionService;
 import com.opensource.moneymanager.service.AccountService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.net.URI;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +32,7 @@ import java.util.stream.Collectors;
  * - Expose endpoints to create, read, and delete transactions (DTO representation).
  * - Keep controllers thin: delegate mapping and business rules to services.
  */
+@Tag(name = "Transactions", description = "Transaction management endpoints")
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
@@ -49,6 +56,9 @@ public class TransactionController {
      * Returns all transactions as TransactionDto list.
      * Response: 200 OK with an array of TransactionDto.
      */
+    @Operation(summary = "List all transactions", description = "Retrieves a list of all transactions")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved transactions",
+            content = @Content(schema = @Schema(implementation = TransactionDto.class)))
     @GetMapping
     public List<TransactionDto> list() {
         logger.info("GET /api/transactions - Fetching all transactions");
@@ -66,8 +76,14 @@ public class TransactionController {
      *
      * @param id the transaction id
      */
+    @Operation(summary = "Get transaction by ID", description = "Retrieves a single transaction by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transaction found",
+                    content = @Content(schema = @Schema(implementation = TransactionDto.class))),
+            @ApiResponse(responseCode = "404", description = "Transaction not found")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<TransactionDto> get(@PathVariable Long id) {
+    public ResponseEntity<TransactionDto> get(@Parameter(description = "Transaction ID") @PathVariable Long id) {
         logger.info("GET /api/transactions/{} - Fetching transaction by id", id);
         return service.findById(id)
             .map(transaction -> {
@@ -92,6 +108,13 @@ public class TransactionController {
      *
      * @param dto the transaction DTO containing amount, type and account id references
      */
+    @Operation(summary = "Create a new transaction", description = "Creates a new transaction and updates account balances")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Transaction created successfully",
+                    content = @Content(schema = @Schema(implementation = TransactionDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request - validation failed",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody TransactionDto dto) {
         logger.info("POST /api/transactions - Creating new transaction: type={}, amount={}",
@@ -139,8 +162,14 @@ public class TransactionController {
      *
      * @param id the id of the transaction to delete
      */
+    @Operation(summary = "Delete a transaction", description = "Deletes a transaction by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Transaction successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Transaction not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(@Parameter(description = "Transaction ID") @PathVariable Long id) {
         logger.info("DELETE /api/transactions/{} - Deleting transaction", id);
 
         try {
@@ -173,8 +202,19 @@ public class TransactionController {
      * @param id the id of the transaction to update
      * @param dto a DTO containing fields to update
      */
+    @Operation(summary = "Update a transaction", description = "Updates an existing transaction and adjusts account balances")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transaction updated successfully",
+                    content = @Content(schema = @Schema(implementation = TransactionDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request - validation failed",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Transaction not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody TransactionDto dto) {
+    public ResponseEntity<?> update(@Parameter(description = "Transaction ID") @PathVariable Long id, @Valid @RequestBody TransactionDto dto) {
         logger.info("PUT /api/transactions/{} - Updating transaction: type={}, amount={}",
             id, dto.getType(), dto.getAmount());
 
@@ -230,8 +270,15 @@ public class TransactionController {
      *
      * @param type the transaction type filter
      */
+    @Operation(summary = "Get transactions by type", description = "Retrieves transactions filtered by type (INCOME, EXPENSE, TRANSFER)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transactions retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = TransactionDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid type parameter",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/by-type/{type}")
-    public ResponseEntity<?> getByType(@PathVariable String type) {
+    public ResponseEntity<?> getByType(@Parameter(description = "Transaction type (INCOME, EXPENSE, TRANSFER)") @PathVariable String type) {
         logger.info("GET /api/transactions/by-type/{} - Fetching transactions by type", type);
 
         // Validate type parameter
@@ -273,8 +320,15 @@ public class TransactionController {
      *
      * @param accountId the account id to fetch transactions for
      */
+    @Operation(summary = "Get transactions by account", description = "Retrieves all transactions for a specific account")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transactions retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = TransactionDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid account ID",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/account/{accountId}")
-    public ResponseEntity<?> getByAccount(@PathVariable Long accountId) {
+    public ResponseEntity<?> getByAccount(@Parameter(description = "Account ID") @PathVariable Long accountId) {
         logger.info("GET /api/transactions/account/{} - Fetching transactions for account", accountId);
 
         // Validate accountId parameter
@@ -305,8 +359,15 @@ public class TransactionController {
      *
      * @param sourceAccountId id of the source account
      */
+    @Operation(summary = "Get outgoing transfers", description = "Retrieves all transfer transactions from a source account")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transfers retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = TransactionDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid source account ID",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/transfers/from/{sourceAccountId}")
-    public ResponseEntity<?> getTransfersFrom(@PathVariable Long sourceAccountId) {
+    public ResponseEntity<?> getTransfersFrom(@Parameter(description = "Source Account ID") @PathVariable Long sourceAccountId) {
         logger.info("GET /api/transactions/transfers/from/{} - Fetching transfers from account", sourceAccountId);
 
         // Validate sourceAccountId parameter
@@ -337,8 +398,15 @@ public class TransactionController {
      *
      * @param destAccountId id of the destination account
      */
+    @Operation(summary = "Get incoming transfers", description = "Retrieves all transfer transactions to a destination account")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transfers retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = TransactionDto.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid destination account ID",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/transfers/to/{destAccountId}")
-    public ResponseEntity<?> getTransfersTo(@PathVariable Long destAccountId) {
+    public ResponseEntity<?> getTransfersTo(@Parameter(description = "Destination Account ID") @PathVariable Long destAccountId) {
         logger.info("GET /api/transactions/transfers/to/{} - Fetching transfers to account", destAccountId);
 
         // Validate destAccountId parameter
