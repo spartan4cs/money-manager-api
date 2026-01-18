@@ -11,4 +11,5 @@ public class MoneymanagerApplication {
 		SpringApplication.run(MoneymanagerApplication.class, args);
 	}
 
+	//this is done by AMan
 }
