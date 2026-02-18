@@ -1,6 +1,7 @@
 package com.opensource.moneymanager.controller;
 
 import com.opensource.moneymanager.dto.AccountDto;
+import com.opensource.moneymanager.dto.BalanceDto;
 import com.opensource.moneymanager.dto.ErrorResponse;
 import com.opensource.moneymanager.mapper.AccountStructMapper;
 import com.opensource.moneymanager.model.Account;
@@ -94,6 +95,47 @@ public class AccountController {
                 .orElseGet(() -> {
                     logger.warn("Account not found: id={}", id);
                     return ResponseEntity.notFound().build();
+                });
+    }
+
+    /**
+     * GET /api/balance/{accountId}
+     * <p>
+     * Fetch the balance of an account by its ID. Returns 200 OK with BalanceDto when found,
+     * or 404 when not found.
+     *
+     * @param accountId the account id
+     */
+    @Operation(summary = "Get account balance", description = "Retrieves the balance information for a specific account")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Balance retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = BalanceDto.class))),
+            @ApiResponse(responseCode = "404", description = "Account not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/balance/{accountId}")
+    public ResponseEntity<?> getBalance(@Parameter(description = "Account ID") @PathVariable Long accountId) {
+        logger.info("GET /api/balance/{} - Fetching account balance", accountId);
+        return service.findById(accountId)
+                .map(account -> {
+                    logger.info("Account found for balance: id={}, name={}, balance={}",
+                        accountId, account.getName(), account.getBalance());
+                    BalanceDto balanceDto = new BalanceDto(
+                            String.valueOf(account.getId()),
+                            account.getBalance(),
+                            "USD" // Default currency
+                    );
+                    return ResponseEntity.ok((Object) balanceDto);
+                })
+                .orElseGet(() -> {
+                    logger.warn("Account not found for balance: id={}", accountId);
+                    ErrorResponse errorResponse = new ErrorResponse(
+                            HttpStatus.NOT_FOUND.value(),
+                            "Account with id " + accountId + " not found",
+                            "Not Found",
+                            "/api/balance/" + accountId
+                    );
+                    return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
                 });
     }
 
