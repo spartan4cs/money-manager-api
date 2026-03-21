@@ -1,0 +1,136 @@
+<div class="transactions-container">
+    <div class="header-section">
+        <div>
+            <h1>Transactions</h1>
+            <p class="subtitle">Track your income, expenses, and transfers.</p>
+        </div>
+        <button class="btn btn-primary" (click)="toggleCreateForm()" *ngIf="!isCreating()">
+            <span class="icon">➕</span> Add Transaction
+        </button>
+    </div>
+
+    <!-- Create Form Panel -->
+    <div class="create-form-panel glass-panel animate-fade-in" *ngIf="isCreating()">
+        <div class="card-header">
+            <h3>New Transaction</h3>
+            <button class="btn-icon" (click)="toggleCreateForm()">✕</button>
+        </div>
+
+        <div class="type-selector">
+            <button class="type-btn" [class.active]="newTransaction.type === 'EXPENSE'" (click)="setType('EXPENSE')">
+                <span class="icon">↑</span> Expense
+            </button>
+            <button class="type-btn" [class.active]="newTransaction.type === 'INCOME'" (click)="setType('INCOME')">
+                <span class="icon">↓</span> Income
+            </button>
+            <button class="type-btn" [class.active]="newTransaction.type === 'TRANSFER'" (click)="setType('TRANSFER')">
+                <span class="icon">⇄</span> Transfer
+            </button>
+        </div>
+
+        <div class="form-grid">
+            <!-- Amount -->
+            <div class="form-group amount-group">
+                <label>Amount</label>
+                <div class="amount-input-wrapper">
+                    <span class="currency-symbol">$</span>
+                    <input type="number" class="input-control amount-input" [(ngModel)]="newTransaction.amount"
+                        placeholder="0.00" step="0.01">
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group desc-group">
+                <label>Description</label>
+                <input type="text" class="input-control" [(ngModel)]="newTransaction.description"
+                    placeholder="e.g. Groceries">
+            </div>
+
+            <!-- Income/Expense Account -->
+            <div class="form-group" *ngIf="newTransaction.type !== 'TRANSFER'">
+                <label>Account</label>
+                <select class="input-control" [(ngModel)]="newTransaction.accountId">
+                    <option [ngValue]="undefined" disabled>Select Account</option>
+                    <option *ngFor="let acc of accounts()" [ngValue]="acc.id">{{ acc.name }} ({{ acc.balance | currency
+                        }})</option>
+                </select>
+            </div>
+
+            <!-- Transfer Sources/Dest -->
+            <ng-container *ngIf="newTransaction.type === 'TRANSFER'">
+                <div class="form-group">
+                    <label>From Account</label>
+                    <select class="input-control" [(ngModel)]="newTransaction.sourceAccountId">
+                        <option [ngValue]="undefined" disabled>Select Source</option>
+                        <option *ngFor="let acc of accounts()" [ngValue]="acc.id">{{ acc.name }} ({{ acc.balance |
+                            currency }})</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>To Account</label>
+                    <select class="input-control" [(ngModel)]="newTransaction.destinationAccountId">
+                        <option [ngValue]="undefined" disabled>Select Destination</option>
+                        <option *ngFor="let acc of accounts()" [ngValue]="acc.id"
+                            [disabled]="acc.id === newTransaction.sourceAccountId">
+                            {{ acc.name }}
+                        </option>
+                    </select>
+                </div>
+            </ng-container>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn-secondary" (click)="toggleCreateForm()">Cancel</button>
+            <button class="btn btn-primary" (click)="saveTransaction()" [disabled]="!isValid()">Save
+                Transaction</button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading()" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading transactions...</p>
+    </div>
+
+    <!-- Transactions Table Panel -->
+    <div *ngIf="!isLoading()" class="transactions-list-panel glass-panel animate-fade-in">
+        <div class="empty-state" *ngIf="transactions().length === 0">
+            <span class="icon">📝</span>
+            <h3>No Transactions</h3>
+            <p>Your transaction history is empty.</p>
+        </div>
+
+        <table class="data-table" *ngIf="transactions().length > 0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th class="text-right">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let txn of transactions()">
+                    <td class="date-cell">{{ txn.dateTime | date:'MMM d, y, h:mm a' }}</td>
+                    <td>
+                        <span class="badge" [ngClass]="{
+              'badge-success': txn.type === 'INCOME',
+              'badge-danger': txn.type === 'EXPENSE',
+              'badge-warning': txn.type === 'TRANSFER'
+            }">{{ txn.type }}</span>
+                    </td>
+                    <td class="desc-cell">{{ txn.description || '-- No Description --' }}</td>
+                    <td class="amount-cell text-right" [ngClass]="{
+            'text-success': txn.type === 'INCOME',
+            'text-danger': txn.type === 'EXPENSE',
+            'text-muted': txn.type === 'TRANSFER'
+          }">
+                        {{ txn.type === 'EXPENSE' ? '-' : (txn.type === 'INCOME' ? '+' : '') }}{{ txn.amount | currency
+                        }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

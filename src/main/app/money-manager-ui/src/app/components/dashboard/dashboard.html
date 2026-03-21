@@ -1,0 +1,84 @@
+<div class="dashboard-container">
+    <div class="header-section">
+        <h1>Dashboard</h1>
+        <p class="subtitle">Welcome back! Here's your financial overview.</p>
+    </div>
+
+    <div *ngIf="isLoading()" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading your data...</p>
+    </div>
+
+    <div *ngIf="!isLoading()" class="dashboard-grid">
+        <!-- Balance Card -->
+        <div class="balance-card glass-panel animate-fade-in" style="--delay: 0.1s">
+            <div class="card-header">
+                <h3>Total Balance</h3>
+                <span class="icon">💰</span>
+            </div>
+            <div class="balance-amount text-success">
+                {{ totalBalance() | currency }}
+            </div>
+            <div class="card-footer">
+                From {{ accounts().length }} active accounts
+            </div>
+        </div>
+
+        <!-- Quick Actions Card -->
+        <div class="actions-card glass-panel animate-fade-in" style="--delay: 0.2s">
+            <div class="card-header">
+                <h3>Quick Actions</h3>
+                <span class="icon">⚡</span>
+            </div>
+            <div class="actions-grid">
+                <button class="btn btn-primary" routerLink="/transactions" [queryParams]="{action: 'income'}">
+                    <span class="icon">➕</span> Add Income
+                </button>
+                <button class="btn btn-danger" routerLink="/transactions" [queryParams]="{action: 'expense'}">
+                    <span class="icon">➖</span> Add Expense
+                </button>
+                <button class="btn btn-secondary" routerLink="/transactions" [queryParams]="{action: 'transfer'}">
+                    <span class="icon">⇄</span> Transfer
+                </button>
+                <button class="btn btn-secondary" routerLink="/accounts">
+                    <span class="icon">🏦</span> New Account
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="transactions-panel glass-panel animate-fade-in" style="--delay: 0.3s">
+            <div class="card-header">
+                <h3>Recent Transactions</h3>
+                <a routerLink="/transactions" class="view-all">View All</a>
+            </div>
+
+            <div class="transactions-list" *ngIf="recentTransactions().length > 0; else noTxns">
+                <div class="transaction-item" *ngFor="let txn of recentTransactions()">
+                    <div class="txn-icon" [ngClass]="txn.type.toLowerCase()">
+                        {{ txn.type === 'INCOME' ? '↓' : (txn.type === 'EXPENSE' ? '↑' : '⇄') }}
+                    </div>
+                    <div class="txn-details">
+                        <h4>{{ txn.description || txn.type }}</h4>
+                        <span class="txn-date">{{ txn.dateTime | date:'mediumDate' }}</span>
+                    </div>
+                    <div class="txn-amount" [ngClass]="{
+            'text-success': txn.type === 'INCOME',
+            'text-danger': txn.type === 'EXPENSE',
+            'text-muted': txn.type === 'TRANSFER'
+          }">
+                        {{ txn.type === 'EXPENSE' ? '-' : (txn.type === 'INCOME' ? '+' : '') }}{{ txn.amount | currency
+                        }}
+                    </div>
+                </div>
+            </div>
+
+            <ng-template #noTxns>
+                <div class="empty-state">
+                    <span class="icon">📝</span>
+                    <p>No recent transactions found.</p>
+                </div>
+            </ng-template>
+        </div>
+    </div>
+</div>

@@ -75,3 +75,16 @@ build/
 ### VS Code ###
 .vscode/
 /.RestfulApiTool/RestfulApiTool-SavedRequest-Cache.xml
+
+### Node & Angular ###
+node_modules/
+dist/
+.angular/
+coverage/
+npm-debug.log*
+
+# Frontend Maven Plugin locally downloaded Node folder
+src/main/app/money-manager-ui/node/
+src/main/app/money-manager-ui/node_modules/
+src/main/app/money-manager-ui/dist/
+src/main/app/money-manager-ui/.angular/

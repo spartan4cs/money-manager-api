@@ -1,0 +1,96 @@
+<div class="accounts-container">
+    <div class="header-section">
+        <div>
+            <h1>Accounts</h1>
+            <p class="subtitle">Manage your bank accounts, wallets and credit cards.</p>
+        </div>
+        <button class="btn btn-primary" (click)="toggleCreateForm()" *ngIf="!isCreating()">
+            <span class="icon">➕</span> Add Account
+        </button>
+    </div>
+
+    <!-- Create Account Form -->
+    <div class="create-form-panel glass-panel animate-fade-in" *ngIf="isCreating()">
+        <div class="card-header">
+            <h3>Add New Account</h3>
+            <button class="btn-icon" (click)="toggleCreateForm()">✕</button>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Account Name</label>
+                <input type="text" class="input-control" [(ngModel)]="newAccount.name" placeholder="e.g. Main Checking"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label>Account Type</label>
+                <select class="input-control" [(ngModel)]="newAccount.type" required>
+                    <option *ngFor="let t of availableTypes()" [value]="t">{{ t }}</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Initial Balance</label>
+                <input type="number" class="input-control" [(ngModel)]="newAccount.balance" placeholder="0.00"
+                    step="0.01">
+            </div>
+
+            <div class="form-group">
+                <label>Provider/Bank (Optional)</label>
+                <input type="text" class="input-control" [(ngModel)]="newAccount.provider"
+                    placeholder="e.g. Chase Bank">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn-secondary" (click)="toggleCreateForm()">Cancel</button>
+            <button class="btn btn-primary" (click)="saveAccount()"
+                [disabled]="!newAccount.name || !newAccount.type">Save Account</button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading()" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading accounts...</p>
+    </div>
+
+    <!-- Accounts List -->
+    <div *ngIf="!isLoading()" class="accounts-grid">
+        <div class="account-card glass-panel animate-fade-in" *ngFor="let acc of accounts(); let i = index"
+            [style.--delay]="(i * 0.1) + 's'">
+            <div class="card-header">
+                <div class="acc-title">
+                    <span class="icon" [ngSwitch]="acc.type">
+                        <span *ngSwitchCase="'BANK'">🏦</span>
+                        <span *ngSwitchCase="'CREDIT_CARD'">💳</span>
+                        <span *ngSwitchCase="'CASH'">💵</span>
+                        <span *ngSwitchCase="'E_WALLET'">📱</span>
+                        <span *ngSwitchCase="'INVESTMENT'">📈</span>
+                        <span *ngSwitchDefault>💼</span>
+                    </span>
+                    <div>
+                        <h3>{{ acc.name }}</h3>
+                        <span class="acc-provider">{{ acc.provider || acc.type }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="balance-amount text-success">
+                    {{ acc.balance | currency }}
+                </div>
+            </div>
+        </div>
+
+        <div class="empty-state glass-panel" *ngIf="accounts().length === 0">
+            <span class="icon">🏦</span>
+            <h3>No Accounts Found</h3>
+            <p>Add your first account to start tracking your money.</p>
+            <button class="btn btn-primary" (click)="toggleCreateForm()" style="margin-top: 1rem;">
+                Add Account
+            </button>
+        </div>
+    </div>
+</div>
